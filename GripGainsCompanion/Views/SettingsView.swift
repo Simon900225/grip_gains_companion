@@ -48,8 +48,9 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             List {
-                // Target Weight section
-                Section("Target Weight") {
+                // Target Weight section (only shown when device is connected)
+                if isDeviceConnected {
+                    Section("Target Weight") {
                     Toggle("Use Manual Target", isOn: $useManualTarget)
 
                     if !useManualTarget {
@@ -143,6 +144,7 @@ struct SettingsView: View {
                             .foregroundColor(.secondary)
                         Stepper("", value: $weightTolerance, in: 0.1...5.0, step: 0.1)
                             .labelsHidden()
+                    }
                     }
                 }
 
