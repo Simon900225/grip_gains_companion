@@ -23,6 +23,9 @@ struct ContentView: View {
     @AppStorage("useManualTarget") private var useManualTarget = false
     @AppStorage("manualTargetWeight") private var manualTargetWeight: Double = 20.0
     @AppStorage("weightTolerance") private var weightTolerance: Double = Double(AppConstants.defaultWeightTolerance)
+    @AppStorage("enableCalibration") private var enableCalibration = true
+    @AppStorage("engageThreshold") private var engageThreshold: Double = 3.0
+    @AppStorage("failThreshold") private var failThreshold: Double = 1.0
     @State private var dragOffset: CGSize = .zero
 
     private let webCoordinator = WebViewCoordinator()
@@ -167,6 +170,15 @@ struct ContentView: View {
         .onChange(of: weightTolerance) { _, newValue in
             progressorHandler.weightTolerance = Float(newValue)
         }
+        .onChange(of: enableCalibration) { _, newValue in
+            progressorHandler.enableCalibration = newValue
+        }
+        .onChange(of: engageThreshold) { _, newValue in
+            progressorHandler.engageThreshold = Float(newValue)
+        }
+        .onChange(of: failThreshold) { _, newValue in
+            progressorHandler.failThreshold = Float(newValue)
+        }
         .preferredColorScheme(preferredScheme)
     }
 
@@ -254,6 +266,11 @@ struct ContentView: View {
         // Initialize target weight and tolerance
         updateTargetWeight()
         progressorHandler.weightTolerance = Float(weightTolerance)
+
+        // Initialize grip detection settings
+        progressorHandler.enableCalibration = enableCalibration
+        progressorHandler.engageThreshold = Float(engageThreshold)
+        progressorHandler.failThreshold = Float(failThreshold)
     }
 }
 

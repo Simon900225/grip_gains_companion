@@ -8,6 +8,13 @@ struct AppConstants {
     static let failThreshold: Float = 1.0
     static let calibrationDuration: TimeInterval = 5.0
 
+    // MARK: - Grip Detection Defaults (kg)
+    static let defaultEngageThreshold: Float = 3.0
+    static let defaultFailThreshold: Float = 1.0
+    static let minGripThreshold: Float = 0.5
+    static let maxEngageThreshold: Float = 10.0
+    static let maxFailThreshold: Float = 5.0
+
     // MARK: - Target Weight
     static let defaultWeightTolerance: Float = 0.5  // kg
     static let minWeightTolerance: Float = 0.1      // kg

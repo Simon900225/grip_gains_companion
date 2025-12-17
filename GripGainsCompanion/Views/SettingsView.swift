@@ -39,6 +39,9 @@ struct SettingsView: View {
     @State private var targetWholeNumber: Int = 20
     @State private var targetDecimal: Int = 0  // 0, 5, 10, 15... 95
     @AppStorage("useKeyboardInput") private var useKeyboardInput: Bool = false
+    @AppStorage("enableCalibration") private var enableCalibration = true
+    @AppStorage("engageThreshold") private var engageThreshold: Double = 3.0  // stored in kg
+    @AppStorage("failThreshold") private var failThreshold: Double = 1.0      // stored in kg
     @State private var manualTargetText: String = "20.00"
     @FocusState private var isTextFieldFocused: Bool
 
@@ -171,6 +174,58 @@ struct SettingsView: View {
                     }
                 }
 
+                // Grip Detection section (only shown when device is connected)
+                if isDeviceConnected {
+                    Section("Grip Detection") {
+                        Toggle("Tare on Startup", isOn: $enableCalibration)
+                        Text("Zeros the scale when Tindeq connects to detect grip and fail states. Does not affect hardware tare or displayed force.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+
+                        HStack {
+                            Text("Engage Threshold")
+                            Spacer()
+                            Text(formatThreshold(engageThreshold))
+                                .foregroundColor(.secondary)
+                            Stepper("",
+                                value: Binding(
+                                    get: { useLbs ? engageThreshold * Double(AppConstants.kgToLbs) : engageThreshold },
+                                    set: { newValue in
+                                        engageThreshold = useLbs ? newValue / Double(AppConstants.kgToLbs) : newValue
+                                        // Ensure fail threshold stays below engage threshold
+                                        if failThreshold >= engageThreshold {
+                                            failThreshold = max(Double(AppConstants.minGripThreshold), engageThreshold - 0.5)
+                                        }
+                                    }
+                                ),
+                                in: useLbs ? 1.0...22.0 : 0.5...Double(AppConstants.maxEngageThreshold),
+                                step: useLbs ? 1.0 : 0.5
+                            )
+                            .labelsHidden()
+                        }
+
+                        HStack {
+                            Text("Fail Threshold")
+                            Spacer()
+                            Text(formatThreshold(failThreshold))
+                                .foregroundColor(.secondary)
+                            Stepper("",
+                                value: Binding(
+                                    get: { useLbs ? failThreshold * Double(AppConstants.kgToLbs) : failThreshold },
+                                    set: { newValue in
+                                        let newKg = useLbs ? newValue / Double(AppConstants.kgToLbs) : newValue
+                                        // Clamp to be less than engage threshold
+                                        failThreshold = min(newKg, engageThreshold - 0.5)
+                                    }
+                                ),
+                                in: useLbs ? 1.0...11.0 : 0.5...Double(AppConstants.maxFailThreshold),
+                                step: useLbs ? 1.0 : 0.5
+                            )
+                            .labelsHidden()
+                        }
+                    }
+                }
+
                 // Display section
                 Section("Display") {
                     Toggle("Show Force Bar", isOn: $showStatusBar)
@@ -272,6 +327,16 @@ struct SettingsView: View {
         }
         // Reset text to formatted value
         manualTargetText = String(format: "%.2f", manualTargetWeight)
+    }
+
+    /// Format threshold value in user's preferred unit
+    private func formatThreshold(_ valueInKg: Double) -> String {
+        if useLbs {
+            let lbs = valueInKg * Double(AppConstants.kgToLbs)
+            return String(format: "%.1f lbs", lbs)
+        } else {
+            return String(format: "%.1f kg", valueInKg)
+        }
     }
 }
 

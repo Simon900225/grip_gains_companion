@@ -85,6 +85,15 @@ class ProgressorHandler: ObservableObject {
     /// Whether engagement is currently allowed (fail button enabled)
     var canEngage: Bool = false
 
+    /// Whether to run calibration on startup (default: true)
+    var enableCalibration: Bool = true
+
+    /// Configurable engage threshold (kg) - force needed to start grip
+    var engageThreshold: Float = AppConstants.defaultEngageThreshold
+
+    /// Configurable fail threshold (kg) - force below this ends grip
+    var failThreshold: Float = AppConstants.defaultFailThreshold
+
     // MARK: - Convenience Properties (for backward compatibility)
 
     var engaged: Bool { state.isEngaged }
@@ -117,9 +126,16 @@ class ProgressorHandler: ObservableObject {
     private func processStateTransition(rawWeight: Float) {
         switch state {
         case .waitingForSamples:
-            // First sample received - start calibration
-            state = .calibrating(startTime: Date(), samples: [rawWeight])
-            calibrationTimeRemaining = AppConstants.calibrationDuration
+            // First sample received - start calibration or skip to idle
+            if enableCalibration {
+                state = .calibrating(startTime: Date(), samples: [rawWeight])
+                calibrationTimeRemaining = AppConstants.calibrationDuration
+            } else {
+                // Skip calibration - baseline is 0
+                state = .idle(baseline: 0)
+                calibrationTimeRemaining = 0
+                calibrationCompleted.send()
+            }
 
         case .calibrating(let startTime, var samples):
             samples.append(rawWeight)
@@ -143,7 +159,7 @@ class ProgressorHandler: ObservableObject {
             samples.append(rawWeight)
             let taredWeight = rawWeight - baseline
 
-            if taredWeight < AppConstants.failThreshold {
+            if taredWeight < failThreshold {
                 // Grip failed
                 stopOffTargetTimer()
                 let duration = Date().timeIntervalSince(startTime)
@@ -171,7 +187,7 @@ class ProgressorHandler: ObservableObject {
     }
 
     private func handleIdleState(rawWeight: Float, taredWeight: Float, baseline: Float) {
-        if taredWeight >= AppConstants.engageThreshold {
+        if taredWeight >= engageThreshold {
             if canEngage {
                 // Start real grip session
                 weightMedian = nil
@@ -192,7 +208,7 @@ class ProgressorHandler: ObservableObject {
         samples: inout [Float],
         isHolding: Bool
     ) {
-        if taredWeight >= AppConstants.engageThreshold {
+        if taredWeight >= engageThreshold {
             if canEngage {
                 // Switch to real grip session
                 weightMedian = nil
@@ -207,10 +223,10 @@ class ProgressorHandler: ObservableObject {
                 state = .weightCalibration(baseline: baseline, samples: [rawWeight], isHolding: true)
                 weightMedian = rawWeight
             }
-        } else if taredWeight < AppConstants.engageThreshold && isHolding {
+        } else if taredWeight < engageThreshold && isHolding {
             // Put down weight - keep median but mark as not holding
             state = .weightCalibration(baseline: baseline, samples: samples, isHolding: false)
-        } else if taredWeight < AppConstants.failThreshold {
+        } else if taredWeight < failThreshold {
             // Completely released - back to idle but keep median
             state = .idle(baseline: baseline)
         }
