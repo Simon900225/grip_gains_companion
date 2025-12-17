@@ -31,6 +31,7 @@ struct SettingsView: View {
     @AppStorage("showStatusBar") private var showStatusBar = true
     @AppStorage("fullScreen") private var fullScreen = true
     @AppStorage("forceBarTheme") private var forceBarTheme = ForceBarTheme.system.rawValue
+    @AppStorage("enableTargetWeight") private var enableTargetWeight = true
     @AppStorage("useManualTarget") private var useManualTarget = false
     @AppStorage("manualTargetWeight") private var manualTargetWeight: Double = 20.0
     @AppStorage("weightTolerance") private var weightTolerance: Double = Double(AppConstants.defaultWeightTolerance)
@@ -54,6 +55,9 @@ struct SettingsView: View {
                 // Target Weight section (only shown when device is connected)
                 if isDeviceConnected {
                     Section("Target Weight") {
+                    Toggle("Enable Target Weight", isOn: $enableTargetWeight)
+
+                    if enableTargetWeight {
                     Toggle("Use Manual Target", isOn: $useManualTarget)
 
                     if !useManualTarget {
@@ -148,7 +152,8 @@ struct SettingsView: View {
                         Stepper("", value: $weightTolerance, in: 0.1...5.0, step: 0.1)
                             .labelsHidden()
                     }
-                    }
+                    }  // if enableTargetWeight
+                    }  // Section
                 }
 
                 // Website section

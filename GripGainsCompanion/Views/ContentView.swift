@@ -20,6 +20,7 @@ struct ContentView: View {
     @AppStorage("forceBarTheme") private var forceBarTheme = ForceBarTheme.system.rawValue
     @AppStorage("settingsButtonX") private var settingsButtonX: Double = -1
     @AppStorage("settingsButtonY") private var settingsButtonY: Double = -1
+    @AppStorage("enableTargetWeight") private var enableTargetWeight = true
     @AppStorage("useManualTarget") private var useManualTarget = false
     @AppStorage("manualTargetWeight") private var manualTargetWeight: Double = 20.0
     @AppStorage("weightTolerance") private var weightTolerance: Double = Double(AppConstants.defaultWeightTolerance)
@@ -185,8 +186,9 @@ struct ContentView: View {
 
     // MARK: - Target Weight
 
-    /// The effective target weight to use (manual or scraped)
+    /// The effective target weight to use (manual or scraped), or nil if disabled
     private var effectiveTargetWeight: Float? {
+        guard enableTargetWeight else { return nil }
         if useManualTarget {
             return Float(manualTargetWeight)
         }
