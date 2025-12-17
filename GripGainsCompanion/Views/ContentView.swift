@@ -1,6 +1,41 @@
 import SwiftUI
 import Combine
 
+// MARK: - Stats Change Modifier
+
+struct StatsChangeModifier: ViewModifier {
+    let sessionMean: Float?
+    let sessionStdDev: Float?
+    let engaged: Bool
+    @Binding var displayedMean: Float?
+    @Binding var displayedStdDev: Float?
+    @Binding var statsHideTimer: Timer?
+
+    func body(content: Content) -> some View {
+        content
+            .onChange(of: sessionMean) { _, newValue in
+                if let mean = newValue { displayedMean = mean }
+            }
+            .onChange(of: sessionStdDev) { _, newValue in
+                if let stdDev = newValue { displayedStdDev = stdDev }
+            }
+            .onChange(of: engaged) { oldValue, newValue in
+                if oldValue && !newValue {
+                    statsHideTimer?.invalidate()
+                    statsHideTimer = Timer.scheduledTimer(withTimeInterval: 15.0, repeats: false) { _ in
+                        DispatchQueue.main.async {
+                            displayedMean = nil
+                            displayedStdDev = nil
+                        }
+                    }
+                } else if !oldValue && newValue {
+                    statsHideTimer?.invalidate()
+                    statsHideTimer = nil
+                }
+            }
+    }
+}
+
 /// Main view that orchestrates all components
 struct ContentView: View {
     @StateObject private var bluetoothManager = BluetoothManager()
@@ -23,11 +58,15 @@ struct ContentView: View {
     @AppStorage("enableTargetWeight") private var enableTargetWeight = true
     @AppStorage("useManualTarget") private var useManualTarget = false
     @AppStorage("manualTargetWeight") private var manualTargetWeight: Double = 20.0
+    @AppStorage("showGripStats") private var showGripStats = true
     @AppStorage("weightTolerance") private var weightTolerance: Double = Double(AppConstants.defaultWeightTolerance)
     @AppStorage("enableCalibration") private var enableCalibration = true
     @AppStorage("engageThreshold") private var engageThreshold: Double = 3.0
     @AppStorage("failThreshold") private var failThreshold: Double = 1.0
     @State private var dragOffset: CGSize = .zero
+    @State private var displayedMean: Float?
+    @State private var displayedStdDev: Float?
+    @State private var statsHideTimer: Timer?
 
     private let webCoordinator = WebViewCoordinator()
 
@@ -85,103 +124,62 @@ struct ContentView: View {
 
     // MARK: - Main View
 
-    private var mainView: some View {
+    private var mainContent: some View {
         VStack(spacing: 0) {
-            // Status bar (shown when device is connected and setting enabled)
             if isConnected && showStatusBar {
-                StatusBarView(
-                    force: progressorHandler.currentForce,
-                    engaged: progressorHandler.engaged,
-                    calibrating: progressorHandler.calibrating,
-                    waitingForSamples: progressorHandler.waitingForSamples,
-                    calibrationTimeRemaining: progressorHandler.calibrationTimeRemaining,
-                    weightMedian: progressorHandler.weightMedian,
-                    targetWeight: effectiveTargetWeight,
-                    isOffTarget: progressorHandler.isOffTarget,
-                    offTargetDirection: progressorHandler.offTargetDirection,
-                    useLbs: useLbs,
-                    theme: ForceBarTheme(rawValue: forceBarTheme) ?? .system,
-                    onUnitToggle: { useLbs.toggle() },
-                    onSettingsTap: { showSettings = true }
-                )
+                statusBarView
             }
-
-            // Web view takes remaining space
             TimerWebView(coordinator: webCoordinator)
                 .ignoresSafeArea(edges: .bottom)
         }
-        .overlay {
-            // Draggable settings button when status bar is hidden (disabled when settings open)
-            if (!isConnected || !showStatusBar) && !showSettings {
-                GeometryReader { geometry in
-                    let buttonSize: CGFloat = 44
-                    let defaultX = geometry.size.width - buttonSize - 16
-                    let defaultY: CGFloat = 8
-                    let currentX = settingsButtonX < 0 ? defaultX : settingsButtonX
-                    let currentY = settingsButtonY < 0 ? defaultY : settingsButtonY
+    }
 
-                    Image(systemName: "gearshape.fill")
-                        .font(.title2)
-                        .foregroundColor(.secondary)
-                        .frame(width: buttonSize, height: buttonSize)
-                        .background(.ultraThinMaterial, in: Circle())
-                        .position(
-                            x: currentX + buttonSize / 2 + dragOffset.width,
-                            y: currentY + buttonSize / 2 + dragOffset.height
-                        )
-                        .onTapGesture {
-                            showSettings = true
-                        }
-                        .gesture(
-                            DragGesture(minimumDistance: 10)
-                                .onChanged { value in
-                                    dragOffset = value.translation
-                                }
-                                .onEnded { value in
-                                    let newX = currentX + value.translation.width
-                                    let newY = currentY + value.translation.height
-                                    // Clamp to screen bounds
-                                    settingsButtonX = max(0, min(newX, geometry.size.width - buttonSize))
-                                    settingsButtonY = max(0, min(newY, geometry.size.height - buttonSize))
-                                    dragOffset = .zero
-                                }
-                        )
-                }
+    private var settingsSheet: some View {
+        SettingsView(
+            deviceName: bluetoothManager.connectedDeviceName,
+            isDeviceConnected: isConnected,
+            useLbs: $useLbs,
+            webCoordinator: webCoordinator,
+            onDisconnect: {
+                showSettings = false
+                bluetoothManager.disconnect()
+            },
+            onConnectDevice: {
+                showSettings = false
+                skippedDevice = false
+            },
+            scrapedTargetWeight: scrapedTargetWeight
+        )
+    }
+
+    private var mainView: some View {
+        mainContent
+            .overlay { settingsButtonOverlay }
+            .sheet(isPresented: $showSettings) { settingsSheet }
+            .onChange(of: useManualTarget) { _, _ in updateTargetWeight() }
+            .onChange(of: manualTargetWeight) { _, _ in updateTargetWeight() }
+            .onChange(of: scrapedTargetWeight) { _, _ in updateTargetWeight() }
+            .onChange(of: weightTolerance) { _, newValue in
+                progressorHandler.weightTolerance = Float(newValue)
             }
-        }
-        .sheet(isPresented: $showSettings) {
-            SettingsView(
-                deviceName: bluetoothManager.connectedDeviceName,
-                isDeviceConnected: isConnected,
-                useLbs: $useLbs,
-                webCoordinator: webCoordinator,
-                onDisconnect: {
-                    showSettings = false
-                    bluetoothManager.disconnect()
-                },
-                onConnectDevice: {
-                    showSettings = false
-                    skippedDevice = false
-                },
-                scrapedTargetWeight: scrapedTargetWeight
-            )
-        }
-        .onChange(of: useManualTarget) { _, _ in updateTargetWeight() }
-        .onChange(of: manualTargetWeight) { _, _ in updateTargetWeight() }
-        .onChange(of: scrapedTargetWeight) { _, _ in updateTargetWeight() }
-        .onChange(of: weightTolerance) { _, newValue in
-            progressorHandler.weightTolerance = Float(newValue)
-        }
-        .onChange(of: enableCalibration) { _, newValue in
-            progressorHandler.enableCalibration = newValue
-        }
-        .onChange(of: engageThreshold) { _, newValue in
-            progressorHandler.engageThreshold = Float(newValue)
-        }
-        .onChange(of: failThreshold) { _, newValue in
-            progressorHandler.failThreshold = Float(newValue)
-        }
-        .preferredColorScheme(preferredScheme)
+            .onChange(of: enableCalibration) { _, newValue in
+                progressorHandler.enableCalibration = newValue
+            }
+            .onChange(of: engageThreshold) { _, newValue in
+                progressorHandler.engageThreshold = Float(newValue)
+            }
+            .onChange(of: failThreshold) { _, newValue in
+                progressorHandler.failThreshold = Float(newValue)
+            }
+            .modifier(StatsChangeModifier(
+                sessionMean: progressorHandler.sessionMean,
+                sessionStdDev: progressorHandler.sessionStdDev,
+                engaged: progressorHandler.engaged,
+                displayedMean: $displayedMean,
+                displayedStdDev: $displayedStdDev,
+                statsHideTimer: $statsHideTimer
+            ))
+            .preferredColorScheme(preferredScheme)
     }
 
     // MARK: - Target Weight
@@ -193,6 +191,82 @@ struct ContentView: View {
             return Float(manualTargetWeight)
         }
         return scrapedTargetWeight
+    }
+
+    // MARK: - Statistics Display
+
+    /// The mean to display (respects showGripStats setting)
+    private var effectiveSessionMean: Float? {
+        showGripStats ? displayedMean : nil
+    }
+
+    /// The std dev to display (respects showGripStats setting)
+    private var effectiveSessionStdDev: Float? {
+        showGripStats ? displayedStdDev : nil
+    }
+
+    // MARK: - Settings Button Overlay
+
+    @ViewBuilder
+    private var settingsButtonOverlay: some View {
+        if (!isConnected || !showStatusBar) && !showSettings {
+            GeometryReader { geometry in
+                let buttonSize: CGFloat = 44
+                let defaultX = geometry.size.width - buttonSize - 16
+                let defaultY: CGFloat = 8
+                let currentX = settingsButtonX < 0 ? defaultX : settingsButtonX
+                let currentY = settingsButtonY < 0 ? defaultY : settingsButtonY
+
+                Image(systemName: "gearshape.fill")
+                    .font(.title2)
+                    .foregroundColor(.secondary)
+                    .frame(width: buttonSize, height: buttonSize)
+                    .background(.ultraThinMaterial, in: Circle())
+                    .position(
+                        x: currentX + buttonSize / 2 + dragOffset.width,
+                        y: currentY + buttonSize / 2 + dragOffset.height
+                    )
+                    .onTapGesture {
+                        showSettings = true
+                    }
+                    .gesture(
+                        DragGesture(minimumDistance: 10)
+                            .onChanged { value in
+                                dragOffset = value.translation
+                            }
+                            .onEnded { value in
+                                let newX = currentX + value.translation.width
+                                let newY = currentY + value.translation.height
+                                settingsButtonX = max(0, min(newX, geometry.size.width - buttonSize))
+                                settingsButtonY = max(0, min(newY, geometry.size.height - buttonSize))
+                                dragOffset = .zero
+                            }
+                    )
+            }
+        }
+    }
+
+    // MARK: - Status Bar
+
+    private var statusBarView: some View {
+        let theme = ForceBarTheme(rawValue: forceBarTheme) ?? .system
+        return StatusBarView(
+            force: progressorHandler.currentForce,
+            engaged: progressorHandler.engaged,
+            calibrating: progressorHandler.calibrating,
+            waitingForSamples: progressorHandler.waitingForSamples,
+            calibrationTimeRemaining: progressorHandler.calibrationTimeRemaining,
+            weightMedian: progressorHandler.weightMedian,
+            targetWeight: effectiveTargetWeight,
+            isOffTarget: progressorHandler.isOffTarget,
+            offTargetDirection: progressorHandler.offTargetDirection,
+            sessionMean: effectiveSessionMean,
+            sessionStdDev: effectiveSessionStdDev,
+            useLbs: useLbs,
+            theme: theme,
+            onUnitToggle: { useLbs.toggle() },
+            onSettingsTap: { showSettings = true }
+        )
     }
 
     /// Update the handler's target weight based on current settings

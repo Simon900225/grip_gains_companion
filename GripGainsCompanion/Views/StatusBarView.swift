@@ -20,6 +20,8 @@ struct StatusBarView: View {
         targetWeight: Float? = nil,
         isOffTarget: Bool = false,
         offTargetDirection: Float? = nil,
+        sessionMean: Float? = nil,
+        sessionStdDev: Float? = nil,
         useLbs: Bool,
         theme: ForceBarTheme = .system,
         onUnitToggle: @escaping () -> Void,
@@ -34,7 +36,9 @@ struct StatusBarView: View {
             weightMedian: weightMedian,
             targetWeight: targetWeight,
             isOffTarget: isOffTarget,
-            offTargetDirection: offTargetDirection
+            offTargetDirection: offTargetDirection,
+            sessionMean: sessionMean,
+            sessionStdDev: sessionStdDev
         )
         self.useLbs = useLbs
         self.theme = theme
@@ -75,9 +79,37 @@ struct StatusBarView: View {
         HStack(spacing: 8) {
             forceDisplay
             Spacer()
+            statisticsDisplay
             weightDisplay
             stateBadge
             settingsButton
+        }
+    }
+
+    @ViewBuilder
+    private var statisticsDisplay: some View {
+        if let mean = state.sessionMean {
+            HStack(spacing: 6) {
+                // Mean display
+                HStack(spacing: 2) {
+                    Text("x̄")
+                        .font(.caption2)
+                    Text(WeightFormatter.format(mean, useLbs: useLbs))
+                        .font(.caption)
+                        .fontWeight(.medium)
+                }
+
+                // Standard deviation display
+                if let stdDev = state.sessionStdDev, stdDev > 0 {
+                    HStack(spacing: 2) {
+                        Text("σ")
+                            .font(.caption2)
+                        Text(WeightFormatter.format(stdDev, useLbs: useLbs, includeUnit: false))
+                            .font(.caption)
+                    }
+                }
+            }
+            .foregroundColor(secondaryTextColor)
         }
     }
 

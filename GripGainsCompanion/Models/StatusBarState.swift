@@ -14,6 +14,10 @@ struct StatusBarState {
     let isOffTarget: Bool
     let offTargetDirection: Float?  // positive = too heavy, negative = too light
 
+    // Session statistics
+    let sessionMean: Float?
+    let sessionStdDev: Float?
+
     /// Show weight only when idle (not gripping, calibrating, or connecting)
     var showWeight: Bool {
         weightMedian != nil && !engaged && !calibrating && !waitingForSamples

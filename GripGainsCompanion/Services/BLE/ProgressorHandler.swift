@@ -46,6 +46,10 @@ class ProgressorHandler: ObservableObject {
     @Published private(set) var calibrationTimeRemaining: TimeInterval = AppConstants.calibrationDuration
     @Published private(set) var weightMedian: Float?
 
+    // Session statistics (live during grip, final after grip ends)
+    @Published private(set) var sessionMean: Float?
+    @Published private(set) var sessionStdDev: Float?
+
     // MARK: - Target Weight State
 
     /// Target weight from website or manual input (in kg)
@@ -119,6 +123,8 @@ class ProgressorHandler: ObservableObject {
         weightMedian = nil
         isOffTarget = false
         offTargetDirection = nil
+        sessionMean = nil
+        sessionStdDev = nil
     }
 
     // MARK: - State Machine Logic
@@ -159,8 +165,13 @@ class ProgressorHandler: ObservableObject {
             samples.append(rawWeight)
             let taredWeight = rawWeight - baseline
 
+            // Calculate live statistics from tared samples
+            let taredSamples = samples.map { $0 - baseline }
+            sessionMean = mean(taredSamples)
+            sessionStdDev = standardDeviation(taredSamples)
+
             if taredWeight < failThreshold {
-                // Grip failed
+                // Grip failed - keep statistics for display after grip ends
                 stopOffTargetTimer()
                 let duration = Date().timeIntervalSince(startTime)
                 state = .idle(baseline: baseline)
@@ -310,5 +321,17 @@ class ProgressorHandler: ObservableObject {
         } else {
             return sorted[mid]
         }
+    }
+
+    private func mean(_ values: [Float]) -> Float {
+        guard !values.isEmpty else { return 0 }
+        return values.reduce(0, +) / Float(values.count)
+    }
+
+    private func standardDeviation(_ values: [Float]) -> Float {
+        guard values.count > 1 else { return 0 }
+        let avg = mean(values)
+        let variance = values.reduce(0) { $0 + pow($1 - avg, 2) } / Float(values.count - 1)
+        return sqrt(variance)
     }
 }

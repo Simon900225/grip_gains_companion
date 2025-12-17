@@ -28,6 +28,7 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @AppStorage("enableHaptics") private var enableHaptics = true
     @AppStorage("enableTargetSound") private var enableTargetSound = true
+    @AppStorage("showGripStats") private var showGripStats = true
     @AppStorage("showStatusBar") private var showStatusBar = true
     @AppStorage("fullScreen") private var fullScreen = true
     @AppStorage("forceBarTheme") private var forceBarTheme = ForceBarTheme.system.rawValue
@@ -247,6 +248,7 @@ struct SettingsView: View {
                 Section("Feedback") {
                     Toggle("Haptic Feedback", isOn: $enableHaptics)
                     Toggle("Target Weight Sounds", isOn: $enableTargetSound)
+                    Toggle("Grip Statistics", isOn: $showGripStats)
                 }
 
                 // Device section
