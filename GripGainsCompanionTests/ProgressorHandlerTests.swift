@@ -457,4 +457,255 @@ final class ProgressorHandlerTests: XCTestCase {
         wait(for: [failedExpectation], timeout: 1.0)
         XCTAssertFalse(handler.engaged, "Should fail when below fail threshold")
     }
+
+    // MARK: - Reset Tests
+
+    /// Verify reset() clears all state to initial values
+    func testResetClearsAllState() {
+        // First, set up some state
+        setupIdleStateWithZeroBaseline()
+        handler.canEngage = true
+        handler.targetWeight = 10.0
+
+        // Engage and build up state
+        handler.processSample(5.0)
+        waitForMainQueue()
+        XCTAssertTrue(handler.engaged, "Should be engaged before reset")
+        XCTAssertFalse(handler.forceHistory.isEmpty, "Should have force history")
+
+        // Reset
+        handler.reset()
+
+        // Verify all state is cleared
+        XCTAssertTrue(handler.state.isWaitingForSamples, "State should be waitingForSamples")
+        XCTAssertEqual(handler.currentForce, 0.0, "currentForce should be 0")
+        XCTAssertEqual(handler.calibrationTimeRemaining, AppConstants.calibrationDuration, "calibrationTimeRemaining should be reset")
+        XCTAssertNil(handler.weightMedian, "weightMedian should be nil")
+        XCTAssertFalse(handler.isOffTarget, "isOffTarget should be false")
+        XCTAssertNil(handler.offTargetDirection, "offTargetDirection should be nil")
+        XCTAssertNil(handler.sessionMean, "sessionMean should be nil")
+        XCTAssertNil(handler.sessionStdDev, "sessionStdDev should be nil")
+        XCTAssertTrue(handler.forceHistory.isEmpty, "forceHistory should be empty")
+    }
+
+    // MARK: - Calibration Tests
+
+    /// Verify first sample transitions from waitingForSamples to calibrating
+    func testCalibrationStartsOnFirstSample() {
+        // Default: enableCalibration = true
+        XCTAssertTrue(handler.enableCalibration, "Calibration should be enabled by default")
+        XCTAssertTrue(handler.state.isWaitingForSamples, "Should start in waitingForSamples")
+
+        // Process first sample
+        handler.processSample(1.0)
+        waitForMainQueue()
+
+        XCTAssertTrue(handler.calibrating, "Should be calibrating after first sample")
+    }
+
+    /// Verify calibration completes with correct baseline after duration
+    /// Note: Calibration requires continuous samples during the 5s period
+    func testCalibrationCompletesWithCorrectBaseline() {
+        // Listen for calibration completed
+        let calibrationExpectation = expectation(description: "Calibration completed")
+        handler.calibrationCompleted
+            .sink { calibrationExpectation.fulfill() }
+            .store(in: &cancellables)
+
+        // Start a timer to send samples continuously during calibration
+        let sampleTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
+            self?.handler.processSample(2.0)
+        }
+
+        // Process first sample to start calibration
+        handler.processSample(2.0)
+        waitForMainQueue()
+        XCTAssertTrue(handler.calibrating)
+
+        // Wait for calibration to complete (5 seconds + buffer)
+        wait(for: [calibrationExpectation], timeout: 6.0)
+        sampleTimer.invalidate()
+
+        // Should now be in idle state
+        XCTAssertFalse(handler.calibrating, "Should not be calibrating after completion")
+        XCTAssertEqual(handler.calibrationTimeRemaining, 0, "calibrationTimeRemaining should be 0")
+
+        // Baseline should be set (approximately 2.0 since we sent that sample)
+        XCTAssertEqual(handler.state.baseline, 2.0, accuracy: 0.1, "Baseline should be ~2.0")
+    }
+
+    // MARK: - Weight Calibration State Tests
+
+    /// Verify weight calibration starts when canEngage=false and above threshold
+    func testWeightCalibrationStartsWhenCanEngageFalse() {
+        setupIdleStateWithZeroBaseline()
+        handler.canEngage = false  // Key condition
+
+        // Apply weight above engage threshold
+        handler.processSample(5.0)
+        waitForMainQueue()
+
+        // Should be in weight calibration, not gripping
+        XCTAssertFalse(handler.engaged, "Should NOT be engaged when canEngage=false")
+
+        if case .weightCalibration(_, _, let isHolding) = handler.state {
+            XCTAssertTrue(isHolding, "Should be holding in weight calibration")
+        } else {
+            XCTFail("Should be in weightCalibration state, got \(handler.state)")
+        }
+    }
+
+    /// Verify weight calibration tracks median while holding
+    func testWeightCalibrationTracksMedian() {
+        setupIdleStateWithZeroBaseline()
+        handler.canEngage = false
+
+        // Hold weight with varying samples
+        handler.processSample(10.0)
+        waitForMainQueue()
+        handler.processSample(12.0)
+        waitForMainQueue()
+        handler.processSample(11.0)
+        waitForMainQueue()
+
+        // Median of [10, 12, 11] = 11.0
+        XCTAssertNotNil(handler.weightMedian, "weightMedian should be set")
+        XCTAssertEqual(handler.weightMedian!, 11.0, accuracy: 0.01, "Median should be 11.0")
+    }
+
+    /// Verify releasing weight transitions to not holding
+    func testWeightCalibrationHoldingToNotHolding() {
+        setupIdleStateWithZeroBaseline()
+        handler.canEngage = false
+
+        // Start holding
+        handler.processSample(5.0)
+        waitForMainQueue()
+
+        if case .weightCalibration(_, _, let isHolding) = handler.state {
+            XCTAssertTrue(isHolding, "Should be holding initially")
+        } else {
+            XCTFail("Should be in weightCalibration state")
+        }
+
+        // Release below engage threshold but above fail threshold
+        handler.processSample(2.0)  // Between 1.0 (fail) and 3.0 (engage)
+        waitForMainQueue()
+
+        if case .weightCalibration(_, _, let isHolding) = handler.state {
+            XCTAssertFalse(isHolding, "Should NOT be holding after releasing")
+        } else {
+            XCTFail("Should still be in weightCalibration state")
+        }
+
+        // Median should still be preserved
+        XCTAssertNotNil(handler.weightMedian, "weightMedian should still be set")
+    }
+
+    /// Verify transitions from weight calibration to gripping when canEngage becomes true
+    func testWeightCalibrationToGripping() {
+        setupIdleStateWithZeroBaseline()
+        handler.canEngage = false
+
+        // Start in weight calibration
+        handler.processSample(5.0)
+        waitForMainQueue()
+        XCTAssertFalse(handler.engaged)
+
+        // Enable engagement
+        handler.canEngage = true
+
+        // Next sample should transition to gripping
+        handler.processSample(5.0)
+        waitForMainQueue()
+
+        XCTAssertTrue(handler.engaged, "Should be engaged after canEngage becomes true")
+    }
+
+    // MARK: - Non-Zero Baseline Tests
+
+    /// Verify statistics use raw weights even with non-zero baseline
+    func testStatisticsWithNonZeroBaseline() {
+        // Use calibration to get a non-zero baseline
+        let calibrationExpectation = expectation(description: "Calibration completed")
+        handler.calibrationCompleted
+            .sink { calibrationExpectation.fulfill() }
+            .store(in: &cancellables)
+
+        // Start a timer to send samples continuously during calibration
+        let sampleTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
+            self?.handler.processSample(5.0)
+        }
+
+        // Send first sample during calibration (will become baseline)
+        handler.processSample(5.0)
+        waitForMainQueue()
+
+        // Wait for calibration
+        wait(for: [calibrationExpectation], timeout: 6.0)
+        sampleTimer.invalidate()
+
+        // Verify baseline is ~5.0
+        let baseline = handler.state.baseline
+        XCTAssertEqual(baseline, 5.0, accuracy: 0.1, "Baseline should be ~5.0")
+
+        // Now engage and collect samples
+        handler.canEngage = true
+        let rawSamples: [Float] = [15.0, 16.0, 17.0]  // All above engage threshold (baseline + 3.0 = 8.0)
+
+        for sample in rawSamples {
+            handler.processSample(sample)
+            waitForMainQueue()
+        }
+
+        XCTAssertTrue(handler.engaged, "Should be engaged")
+
+        // Statistics should be from RAW weights, not tared
+        // Raw mean: (15 + 16 + 17) / 3 = 16.0
+        // If tared was used incorrectly: (10 + 11 + 12) / 3 = 11.0
+        XCTAssertEqual(handler.sessionMean!, 16.0, accuracy: 0.1,
+                       "Mean should be 16.0 (raw), not 11.0 (tared)")
+    }
+
+    /// Verify off-target uses raw weight with non-zero baseline
+    func testOffTargetWithNonZeroBaseline() {
+        // Use calibration to get a non-zero baseline
+        let calibrationExpectation = expectation(description: "Calibration completed")
+        handler.calibrationCompleted
+            .sink { calibrationExpectation.fulfill() }
+            .store(in: &cancellables)
+
+        // Start a timer to send samples continuously during calibration
+        let sampleTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
+            self?.handler.processSample(5.0)
+        }
+
+        handler.processSample(5.0)
+        waitForMainQueue()
+        wait(for: [calibrationExpectation], timeout: 6.0)
+        sampleTimer.invalidate()
+
+        // Set target to 15.0 kg (raw)
+        handler.targetWeight = 15.0
+        handler.weightTolerance = 0.5
+        handler.canEngage = true
+
+        // Engage with on-target weight
+        handler.processSample(15.0)
+        waitForMainQueue()
+        XCTAssertTrue(handler.engaged)
+
+        // Second sample to trigger off-target check (still on target)
+        handler.processSample(15.0)
+        waitForMainQueue()
+        XCTAssertFalse(handler.isOffTarget, "Should be on target at 15.0")
+
+        // Now go off target with raw weight 16.5 (1.5 over target)
+        handler.processSample(16.5)
+        waitForMainQueue()
+
+        XCTAssertTrue(handler.isOffTarget, "Should be off target at raw 16.5 vs target 15.0")
+        XCTAssertEqual(handler.offTargetDirection!, 1.5, accuracy: 0.01,
+                       "Direction should be +1.5 (raw 16.5 - target 15.0)")
+    }
 }
