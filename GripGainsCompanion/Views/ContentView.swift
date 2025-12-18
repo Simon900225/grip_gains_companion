@@ -51,6 +51,7 @@ struct ContentView: View {
     @AppStorage("enableHaptics") private var enableHaptics = true
     @AppStorage("enableTargetSound") private var enableTargetSound = true
     @AppStorage("showStatusBar") private var showStatusBar = true
+    @AppStorage("expandedForceBar") private var expandedForceBar = false
     @AppStorage("fullScreen") private var fullScreen = true
     @AppStorage("forceBarTheme") private var forceBarTheme = ForceBarTheme.system.rawValue
     @AppStorage("settingsButtonX") private var settingsButtonX: Double = -1
@@ -264,6 +265,7 @@ struct ContentView: View {
             sessionStdDev: effectiveSessionStdDev,
             useLbs: useLbs,
             theme: theme,
+            expanded: expandedForceBar,
             onUnitToggle: { useLbs.toggle() },
             onSettingsTap: { showSettings = true }
         )

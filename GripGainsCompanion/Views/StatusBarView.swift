@@ -5,6 +5,7 @@ struct StatusBarView: View {
     let state: StatusBarState
     let useLbs: Bool
     let theme: ForceBarTheme
+    let expanded: Bool
     let onUnitToggle: () -> Void
     let onSettingsTap: () -> Void
 
@@ -24,6 +25,7 @@ struct StatusBarView: View {
         sessionStdDev: Float? = nil,
         useLbs: Bool,
         theme: ForceBarTheme = .system,
+        expanded: Bool = false,
         onUnitToggle: @escaping () -> Void,
         onSettingsTap: @escaping () -> Void
     ) {
@@ -42,6 +44,7 @@ struct StatusBarView: View {
         )
         self.useLbs = useLbs
         self.theme = theme
+        self.expanded = expanded
         self.onUnitToggle = onUnitToggle
         self.onSettingsTap = onSettingsTap
     }
@@ -63,19 +66,24 @@ struct StatusBarView: View {
     }
 
     var body: some View {
-        VStack(spacing: 4) {
-            mainRow
+        VStack(spacing: expanded ? 8 : 4) {
+            if expanded {
+                expandedLayout
+            } else {
+                compactLayout
+            }
             calibrationMessage
         }
         .padding(.horizontal)
-        .padding(.vertical, 10)
+        .padding(.vertical, expanded ? 20 : 10)
         .background(backgroundColor)
     }
 
     // MARK: - View Components
 
+    /// Compact layout: single horizontal row
     @ViewBuilder
-    private var mainRow: some View {
+    private var compactLayout: some View {
         HStack(spacing: 8) {
             forceDisplay
             Spacer()
@@ -84,6 +92,67 @@ struct StatusBarView: View {
             stateBadge
             settingsButton
         }
+    }
+
+    /// Expanded layout: giant centered force with secondary info
+    @ViewBuilder
+    private var expandedLayout: some View {
+        // Top row: measured weight on left, badge and settings on right
+        HStack {
+            measuredWeightDisplay
+            Spacer()
+            stateBadge
+            settingsButton
+        }
+
+        // Center: giant force number
+        expandedForceDisplay
+            .frame(maxWidth: .infinity)
+
+        // Bottom row: stats on left, target on right
+        HStack {
+            statisticsDisplay
+            Spacer()
+            targetWeightDisplay
+        }
+    }
+
+    /// Measured weight only (for expanded layout top left)
+    @ViewBuilder
+    private var measuredWeightDisplay: some View {
+        if state.showWeight, let median = state.weightMedian {
+            Text("⚖ \(WeightFormatter.format(median, useLbs: useLbs))")
+                .font(.caption)
+                .foregroundColor(secondaryTextColor)
+        }
+    }
+
+    /// Target weight only (for expanded layout bottom right)
+    @ViewBuilder
+    private var targetWeightDisplay: some View {
+        if let target = state.targetWeight {
+            HStack(spacing: 4) {
+                Text("Target: \(WeightFormatter.format(target, useLbs: useLbs))")
+                    .font(.caption)
+                    .foregroundColor(state.isOffTarget ? .red : secondaryTextColor)
+
+                // Show difference when off target
+                if state.isOffTarget, let diff = state.formattedDifference(useLbs: useLbs) {
+                    Text("(\(diff))")
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .foregroundColor(.red)
+                }
+            }
+        }
+    }
+
+    /// Giant force display for expanded mode
+    private var expandedForceDisplay: some View {
+        Text(WeightFormatter.format(state.force, useLbs: useLbs))
+            .font(.system(size: 48, weight: .bold, design: .rounded))
+            .foregroundColor(state.forceColor(baseline: state.weightMedian ?? 0, isDarkMode: isDarkMode))
+            .onTapGesture { onUnitToggle() }
     }
 
     @ViewBuilder
@@ -113,6 +182,7 @@ struct StatusBarView: View {
         }
     }
 
+    /// Compact force display
     private var forceDisplay: some View {
         Text(WeightFormatter.format(state.force, useLbs: useLbs))
             .font(.subheadline)

@@ -30,6 +30,7 @@ struct SettingsView: View {
     @AppStorage("enableTargetSound") private var enableTargetSound = true
     @AppStorage("showGripStats") private var showGripStats = true
     @AppStorage("showStatusBar") private var showStatusBar = true
+    @AppStorage("expandedForceBar") private var expandedForceBar = false
     @AppStorage("fullScreen") private var fullScreen = true
     @AppStorage("forceBarTheme") private var forceBarTheme = ForceBarTheme.system.rawValue
     @AppStorage("enableTargetWeight") private var enableTargetWeight = true
@@ -235,6 +236,7 @@ struct SettingsView: View {
                 // Display section
                 Section("Display") {
                     Toggle("Show Force Bar", isOn: $showStatusBar)
+                    Toggle("Expanded Force Bar", isOn: $expandedForceBar)
                     Toggle("Full Screen", isOn: $fullScreen)
                     Picker("Force Bar Theme", selection: $forceBarTheme) {
                         ForEach(ForceBarTheme.allCases, id: \.rawValue) { theme in
@@ -303,37 +305,47 @@ struct SettingsView: View {
             }
             .onAppear {
                 initializeWheelPickers()
-                manualTargetText = String(format: "%.2f", manualTargetWeight)
+                let displayValue = useLbs ? manualTargetWeight * Double(AppConstants.kgToLbs) : manualTargetWeight
+                manualTargetText = String(format: "%.2f", displayValue)
+            }
+            .onChange(of: useLbs) { _, _ in
+                // Re-initialize inputs when unit changes to show correct value in new unit
+                initializeWheelPickers()
+                let displayValue = useLbs ? manualTargetWeight * Double(AppConstants.kgToLbs) : manualTargetWeight
+                manualTargetText = String(format: "%.2f", displayValue)
             }
         }
     }
 
     // MARK: - Helper Methods
 
-    /// Initialize wheel picker values from stored manualTargetWeight
+    /// Initialize wheel picker values from stored manualTargetWeight (stored in kg, displayed in user's unit)
     private func initializeWheelPickers() {
-        let whole = Int(manualTargetWeight)
-        let decimal = Int(round((manualTargetWeight - Double(whole)) * 100))
+        let displayValue = useLbs ? manualTargetWeight * Double(AppConstants.kgToLbs) : manualTargetWeight
+        let whole = Int(displayValue)
+        let decimal = Int(round((displayValue - Double(whole)) * 100))
         // Round to nearest 5
         let roundedDecimal = (decimal / 5) * 5
         targetWholeNumber = whole
         targetDecimal = min(95, max(0, roundedDecimal))
     }
 
-    /// Sync wheel picker values back to manualTargetWeight
+    /// Sync wheel picker values back to manualTargetWeight (stored in kg)
     private func syncTargetWeight() {
-        manualTargetWeight = Double(targetWholeNumber) + Double(targetDecimal) / 100.0
+        let displayValue = Double(targetWholeNumber) + Double(targetDecimal) / 100.0
+        manualTargetWeight = useLbs ? displayValue / Double(AppConstants.kgToLbs) : displayValue
     }
 
-    /// Parse text field input and update manualTargetWeight
+    /// Parse text field input and update manualTargetWeight (stored in kg)
     private func parseManualTarget() {
         // Handle both . and , as decimal separator
         let cleaned = manualTargetText.replacingOccurrences(of: ",", with: ".")
         if let value = Double(cleaned), value >= 0 {
-            manualTargetWeight = value
+            manualTargetWeight = useLbs ? value / Double(AppConstants.kgToLbs) : value
         }
-        // Reset text to formatted value
-        manualTargetText = String(format: "%.2f", manualTargetWeight)
+        // Reset text to formatted value (in display units)
+        let displayValue = useLbs ? manualTargetWeight * Double(AppConstants.kgToLbs) : manualTargetWeight
+        manualTargetText = String(format: "%.2f", displayValue)
     }
 
     /// Format threshold value in user's preferred unit
