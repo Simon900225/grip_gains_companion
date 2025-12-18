@@ -317,7 +317,7 @@ class ProgressorHandler: ObservableObject {
 
     // MARK: - Utilities
 
-    private func median(_ values: [Float]) -> Float {
+    func median(_ values: [Float]) -> Float {
         guard !values.isEmpty else { return 0 }
         let sorted = values.sorted()
         let mid = sorted.count / 2
@@ -328,12 +328,12 @@ class ProgressorHandler: ObservableObject {
         }
     }
 
-    private func mean(_ values: [Float]) -> Float {
+    func mean(_ values: [Float]) -> Float {
         guard !values.isEmpty else { return 0 }
         return values.reduce(0, +) / Float(values.count)
     }
 
-    private func standardDeviation(_ values: [Float]) -> Float {
+    func standardDeviation(_ values: [Float]) -> Float {
         guard values.count > 1 else { return 0 }
         let avg = mean(values)
         let variance = values.reduce(0) { $0 + pow($1 - avg, 2) } / Float(values.count - 1)
