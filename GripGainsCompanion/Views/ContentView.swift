@@ -163,6 +163,10 @@ struct ContentView: View {
                 showSettings = false
                 skippedDevice = false
             },
+            onRecalibrate: {
+                showSettings = false
+                progressorHandler.recalibrate()
+            },
             scrapedTargetWeight: scrapedTargetWeight
         )
     }

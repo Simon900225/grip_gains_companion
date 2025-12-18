@@ -132,6 +132,19 @@ class ProgressorHandler: ObservableObject {
         forceHistory = []
     }
 
+    /// Trigger recalibration - resets to waitingForSamples state
+    func recalibrate() {
+        stopOffTargetTimer()
+        state = .waitingForSamples
+        calibrationTimeRemaining = AppConstants.calibrationDuration
+        weightMedian = nil
+        isOffTarget = false
+        offTargetDirection = nil
+        sessionMean = nil
+        sessionStdDev = nil
+        forceHistory = []
+    }
+
     // MARK: - State Machine Logic
 
     private func processStateTransition(rawWeight: Float) {

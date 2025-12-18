@@ -21,6 +21,7 @@ struct SettingsView: View {
     let webCoordinator: WebViewCoordinator
     let onDisconnect: () -> Void
     let onConnectDevice: () -> Void
+    let onRecalibrate: () -> Void
 
     /// Target weight scraped from website (read-only display)
     let scrapedTargetWeight: Float?
@@ -232,6 +233,16 @@ struct SettingsView: View {
                             )
                             .labelsHidden()
                         }
+
+                        Button {
+                            onRecalibrate()
+                            dismiss()
+                        } label: {
+                            HStack {
+                                Image(systemName: "arrow.triangle.2.circlepath")
+                                Text("Recalibrate Tare")
+                            }
+                        }
                     }
                 }
 
@@ -379,6 +390,7 @@ struct SettingsView: View {
         webCoordinator: WebViewCoordinator(),
         onDisconnect: {},
         onConnectDevice: {},
+        onRecalibrate: {},
         scrapedTargetWeight: 20.0
     )
 }
@@ -391,6 +403,7 @@ struct SettingsView: View {
         webCoordinator: WebViewCoordinator(),
         onDisconnect: {},
         onConnectDevice: {},
+        onRecalibrate: {},
         scrapedTargetWeight: nil
     )
 }
