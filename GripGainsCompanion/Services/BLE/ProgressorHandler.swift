@@ -171,10 +171,9 @@ class ProgressorHandler: ObservableObject {
             samples.append(rawWeight)
             let taredWeight = rawWeight - baseline
 
-            // Calculate live statistics from tared samples
-            let taredSamples = samples.map { $0 - baseline }
-            sessionMean = mean(taredSamples)
-            sessionStdDev = standardDeviation(taredSamples)
+            // Calculate live statistics from raw samples
+            sessionMean = mean(samples)
+            sessionStdDev = standardDeviation(samples)
 
             if taredWeight < failThreshold {
                 // Grip failed - keep statistics for display after grip ends
