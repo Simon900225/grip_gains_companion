@@ -70,6 +70,7 @@ struct ContentView: View {
     @State private var displayedMean: Float?
     @State private var displayedStdDev: Float?
     @State private var statsHideTimer: Timer?
+    @State private var buttonStateTimer: Timer?
 
     private let webCoordinator = WebViewCoordinator()
 
@@ -167,6 +168,7 @@ struct ContentView: View {
             onRecalibrate: {
                 showSettings = false
                 progressorHandler.recalibrate()
+                webCoordinator.refreshButtonState()
             },
             scrapedTargetWeight: scrapedTargetWeight
         )
@@ -369,6 +371,13 @@ struct ContentView: View {
         progressorHandler.enableCalibration = enableCalibration
         progressorHandler.engageThreshold = Float(engageThreshold)
         progressorHandler.failThreshold = Float(failThreshold)
+
+        // Periodic button state polling as backup (only in idle state)
+        buttonStateTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
+            if !progressorHandler.calibrating && !progressorHandler.waitingForSamples && !progressorHandler.engaged {
+                webCoordinator.refreshButtonState()
+            }
+        }
     }
 }
 

@@ -22,7 +22,9 @@ class WebViewCoordinator: NSObject, WKScriptMessageHandler, WKNavigationDelegate
     // MARK: - WKNavigationDelegate
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-        // MutationObserver in JavaScript handles button state changes
+        Task { @MainActor in
+            try? await webView.evaluateJavaScript(JavaScriptBridge.observerScript)
+        }
     }
 
     // MARK: - WKScriptMessageHandler
