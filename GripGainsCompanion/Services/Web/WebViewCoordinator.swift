@@ -52,7 +52,7 @@ class WebViewCoordinator: NSObject, WKScriptMessageHandler, WKNavigationDelegate
     }
 
     /// Parse weight string like "20.0 kg" or "44 lbs" to Float (always returns kg)
-    private func parseWeight(_ string: String) -> Float? {
+    func parseWeight(_ string: String) -> Float? {
         let lowercased = string.lowercased()
         let isLbs = lowercased.contains("lbs") || lowercased.contains("lb")
 
