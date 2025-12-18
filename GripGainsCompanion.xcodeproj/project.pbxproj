@@ -27,10 +27,27 @@
 		7EC12C922EF1195800A9D66C /* Log.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7EC12C8E2EF1195800A9D66C /* Log.swift */; };
 		7EC12C932EF1195800A9D66C /* HapticManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7EC12C8D2EF1195800A9D66C /* HapticManager.swift */; };
 		7EC12C952EF1196000A9D66C /* StatusBarState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7EC12C942EF1196000A9D66C /* StatusBarState.swift */; };
+		T001 /* WeightFormatterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T101 /* WeightFormatterTests.swift */; };
+		T002 /* ProgressorHandlerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T102 /* ProgressorHandlerTests.swift */; };
+		T003 /* WebViewCoordinatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T103 /* WebViewCoordinatorTests.swift */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		T200 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 600 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 400;
+			remoteInfo = GripGainsCompanion;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		100 /* GripGainsCompanion.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GripGainsCompanion.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		T100 /* GripGainsCompanionTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = GripGainsCompanionTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		T101 /* WeightFormatterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeightFormatterTests.swift; sourceTree = "<group>"; };
+		T102 /* ProgressorHandlerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressorHandlerTests.swift; sourceTree = "<group>"; };
+		T103 /* WebViewCoordinatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebViewCoordinatorTests.swift; sourceTree = "<group>"; };
 		101 /* GripGainsCompanion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GripGainsCompanion.swift; sourceTree = "<group>"; };
 		102 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		103 /* StatusBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBarView.swift; sourceTree = "<group>"; };
@@ -62,6 +79,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		T201 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -69,8 +93,19 @@
 			isa = PBXGroup;
 			children = (
 				301 /* GripGainsCompanion */,
+				T300 /* GripGainsCompanionTests */,
 				302 /* Products */,
 			);
+			sourceTree = "<group>";
+		};
+		T300 /* GripGainsCompanionTests */ = {
+			isa = PBXGroup;
+			children = (
+				T101 /* WeightFormatterTests.swift */,
+				T102 /* ProgressorHandlerTests.swift */,
+				T103 /* WebViewCoordinatorTests.swift */,
+			);
+			path = GripGainsCompanionTests;
 			sourceTree = "<group>";
 		};
 		301 /* GripGainsCompanion */ = {
@@ -92,6 +127,7 @@
 			isa = PBXGroup;
 			children = (
 				100 /* GripGainsCompanion.app */,
+				T100 /* GripGainsCompanionTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -185,6 +221,24 @@
 			productReference = 100 /* GripGainsCompanion.app */;
 			productType = "com.apple.product-type.application";
 		};
+		T400 /* GripGainsCompanionTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = T500 /* Build configuration list for PBXNativeTarget "GripGainsCompanionTests" */;
+			buildPhases = (
+				T401 /* Sources */,
+				T201 /* Frameworks */,
+				T402 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				T202 /* PBXTargetDependency */,
+			);
+			name = GripGainsCompanionTests;
+			productName = GripGainsCompanionTests;
+			productReference = T100 /* GripGainsCompanionTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -197,6 +251,10 @@
 				TargetAttributes = {
 					400 = {
 						CreatedOnToolsVersion = 15.0;
+					};
+					T400 = {
+						CreatedOnToolsVersion = 15.0;
+						TestTargetID = 400;
 					};
 				};
 			};
@@ -214,6 +272,7 @@
 			projectRoot = "";
 			targets = (
 				400 /* GripGainsCompanion */,
+				T400 /* GripGainsCompanionTests */,
 			);
 		};
 /* End PBXProject section */
@@ -224,6 +283,13 @@
 			buildActionMask = 2147483647;
 			files = (
 				016 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		T402 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -256,7 +322,25 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		T401 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				T001 /* WeightFormatterTests.swift in Sources */,
+				T002 /* ProgressorHandlerTests.swift in Sources */,
+				T003 /* WebViewCoordinatorTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		T202 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 400 /* GripGainsCompanion */;
+			targetProxy = T200 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		700 /* Debug */ = {
@@ -441,6 +525,42 @@
 			};
 			name = Release;
 		};
+		T702 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.gripgains.companion.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/GripGainsCompanion.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/GripGainsCompanion";
+			};
+			name = Debug;
+		};
+		T703 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.gripgains.companion.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/GripGainsCompanion.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/GripGainsCompanion";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -449,6 +569,15 @@
 			buildConfigurations = (
 				702 /* Debug */,
 				703 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		T500 /* Build configuration list for PBXNativeTarget "GripGainsCompanionTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				T702 /* Debug */,
+				T703 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
