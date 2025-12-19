@@ -79,6 +79,69 @@ final class ProgressorHandlerTests: XCTestCase {
         XCTAssertEqual(result, -1.0)
     }
 
+    // MARK: - Trimmed Median Tests
+
+    func testTrimmedMedianWithTenSamples() {
+        // 10 samples: trim 3 from start, 3 from end, median of middle 4
+        // Simulates: pickup [5, 10, 15], stable [20, 20, 20, 20], release [15, 10, 5]
+        let samples: [Float] = [5, 10, 15, 20, 20, 20, 20, 15, 10, 5]
+        let result = handler.trimmedMedian(samples)
+        // Middle 4 samples: [20, 20, 20, 20] -> median = 20
+        XCTAssertEqual(result, 20.0)
+    }
+
+    func testTrimmedMedianFallbackForFewSamples() {
+        // Less than 5 samples: should fallback to regular median
+        let samples: [Float] = [5, 20, 10]
+        let result = handler.trimmedMedian(samples)
+        // Regular median of [5, 10, 20] = 10
+        XCTAssertEqual(result, 10.0)
+    }
+
+    func testTrimmedMedianExactlyFiveSamples() {
+        // 5 samples: trim 1 from each end, median of middle 3
+        let samples: [Float] = [5, 20, 20, 20, 5]
+        let result = handler.trimmedMedian(samples)
+        // Middle 3 samples: [20, 20, 20] -> median = 20
+        XCTAssertEqual(result, 20.0)
+    }
+
+    func testTrimmedMedianWithRealisticData() {
+        // Simulates realistic weight pickup/hold/release pattern
+        // Pickup: ramping up 0 -> 20kg
+        // Hold: stable around 20kg
+        // Release: ramping down 20kg -> 0
+        var samples: [Float] = []
+        // Pickup phase (30 samples ramping up)
+        for i in 0..<30 {
+            samples.append(Float(i) * 20.0 / 30.0)
+        }
+        // Stable phase (40 samples at ~20kg with slight variation)
+        for _ in 0..<40 {
+            samples.append(20.0 + Float.random(in: -0.5...0.5))
+        }
+        // Release phase (30 samples ramping down)
+        for i in 0..<30 {
+            samples.append(20.0 - Float(i) * 20.0 / 30.0)
+        }
+
+        let result = handler.trimmedMedian(samples)
+        // Should be close to 20kg (the stable phase value)
+        XCTAssertEqual(result, 20.0, accuracy: 1.0)
+    }
+
+    func testTrimmedMedianVsRegularMedian() {
+        // Shows that trimmed median gives better result for transient data
+        let samples: [Float] = [0, 5, 10, 20, 20, 20, 20, 10, 5, 0]
+        let regularMedian = handler.median(samples)
+        let trimmedMedian = handler.trimmedMedian(samples)
+
+        // Regular median of sorted [0, 0, 5, 5, 10, 10, 20, 20, 20, 20] = (10 + 10) / 2 = 10
+        XCTAssertEqual(regularMedian, 10.0)
+        // Trimmed median of middle [20, 20, 20, 20] = 20
+        XCTAssertEqual(trimmedMedian, 20.0)
+    }
+
     // MARK: - Mean Tests
 
     func testMeanNormalCase() {

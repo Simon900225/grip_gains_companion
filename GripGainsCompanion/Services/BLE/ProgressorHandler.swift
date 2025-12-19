@@ -262,7 +262,8 @@ class ProgressorHandler: ObservableObject {
                 weightMedian = rawWeight
             }
         } else if taredWeight < engageThreshold && isHolding {
-            // Put down weight - keep median but mark as not holding
+            // Put down weight - calculate final trimmed median and mark as not holding
+            weightMedian = trimmedMedian(samples)
             state = .weightCalibration(baseline: baseline, samples: samples, isHolding: false)
         } else if taredWeight < failThreshold {
             // Completely released - back to idle but keep median
@@ -360,5 +361,20 @@ class ProgressorHandler: ObservableObject {
         let avg = mean(values)
         let variance = values.reduce(0) { $0 + pow($1 - avg, 2) } / Float(values.count - 1)
         return sqrt(variance)
+    }
+
+    /// Calculates median after trimming a fraction of samples from start and end.
+    /// Used to exclude transient pickup/release phases for more accurate weight detection.
+    func trimmedMedian(_ values: [Float], trimFraction: Float = 0.3) -> Float {
+        guard values.count >= 5 else { return median(values) }
+
+        let trimCount = Int(Float(values.count) * trimFraction)
+        let startIndex = trimCount
+        let endIndex = values.count - trimCount
+
+        guard startIndex < endIndex else { return median(values) }
+
+        let trimmedValues = Array(values[startIndex..<endIndex])
+        return median(trimmedValues)
     }
 }
