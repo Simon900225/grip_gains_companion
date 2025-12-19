@@ -141,4 +141,18 @@ class WebViewCoordinator: NSObject, WKScriptMessageHandler, WKNavigationDelegate
             Log.app.error("Error scraping target weight: \(error.localizedDescription)")
         }
     }
+
+    /// Record timer state when entering background
+    func recordBackgroundStart() {
+        Task { @MainActor in
+            try? await webView?.evaluateJavaScript("window._recordBackgroundStart()")
+        }
+    }
+
+    /// Add elapsed background time to compensate for JS being throttled in background
+    func addBackgroundTime(milliseconds: Double) {
+        Task { @MainActor in
+            try? await webView?.evaluateJavaScript("window._addBackgroundTime(\(milliseconds))")
+        }
+    }
 }

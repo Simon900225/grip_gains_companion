@@ -24,6 +24,14 @@ struct TimerWebView: UIViewRepresentable {
         contentController.add(coordinator, name: "buttonState")
         contentController.add(coordinator, name: "targetWeight")
 
+        // Inject background time offset script at document start (must run before page scripts)
+        let backgroundTimeScript = WKUserScript(
+            source: JavaScriptBridge.backgroundTimeOffsetScript,
+            injectionTime: .atDocumentStart,
+            forMainFrameOnly: false
+        )
+        contentController.addUserScript(backgroundTimeScript)
+
         // Inject observer script on document end
         let observerScript = WKUserScript(
             source: JavaScriptBridge.observerScript,

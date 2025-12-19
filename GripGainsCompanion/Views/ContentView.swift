@@ -38,6 +38,7 @@ struct StatsChangeModifier: ViewModifier {
 
 /// Main view that orchestrates all components
 struct ContentView: View {
+    @Environment(\.scenePhase) private var scenePhase
     @StateObject private var bluetoothManager = BluetoothManager()
     @StateObject private var progressorHandler = ProgressorHandler()
 
@@ -71,6 +72,7 @@ struct ContentView: View {
     @State private var displayedStdDev: Float?
     @State private var statsHideTimer: Timer?
     @State private var buttonStateTimer: Timer?
+    @State private var backgroundedAt: Date?
 
     private let webCoordinator = WebViewCoordinator()
 
@@ -122,6 +124,21 @@ struct ContentView: View {
         }
         .onChange(of: isFailButtonEnabled) { _, newValue in
             progressorHandler.canEngage = newValue
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            switch newPhase {
+            case .background:
+                backgroundedAt = Date()
+                webCoordinator.recordBackgroundStart()
+            case .active:
+                if let backgroundedAt = backgroundedAt {
+                    let elapsedMs = Date().timeIntervalSince(backgroundedAt) * 1000
+                    webCoordinator.addBackgroundTime(milliseconds: elapsedMs)
+                    self.backgroundedAt = nil
+                }
+            default:
+                break
+            }
         }
         .statusBarHidden(fullScreen)
     }
