@@ -150,31 +150,51 @@ enum JavaScriptBridge {
         })();
     """
 
-    /// MutationObserver script for real-time target weight changes
+    /// MutationObserver script for real-time target weight and duration changes
     static let targetWeightObserverScript = """
         (function() {
-            function scrapeAndSendWeight() {
+            function scrapeAndSendValues() {
                 const elements = document.querySelectorAll('.session-preview-header .text-white');
+                let foundWeight = false;
+                let foundDuration = false;
+
                 for (const elem of elements) {
                     const text = elem.textContent.trim();
-                    if (text.includes('kg') || text.includes('lbs') || text.includes('lb')) {
+
+                    // Check for weight (contains kg or lbs)
+                    if (!foundWeight && (text.includes('kg') || text.includes('lbs') || text.includes('lb'))) {
                         window.webkit.messageHandlers.targetWeight.postMessage(text);
-                        return;
+                        foundWeight = true;
+                    }
+
+                    // Check for duration (ends with 's' but not weight units)
+                    if (!foundDuration && text.endsWith('s') && !text.includes('kg') && !text.includes('lb')) {
+                        const seconds = parseInt(text);
+                        if (!isNaN(seconds) && seconds > 0) {
+                            window.webkit.messageHandlers.targetDuration.postMessage(seconds);
+                            foundDuration = true;
+                        }
                     }
                 }
-                window.webkit.messageHandlers.targetWeight.postMessage(null);
+
+                if (!foundWeight) {
+                    window.webkit.messageHandlers.targetWeight.postMessage(null);
+                }
+                if (!foundDuration) {
+                    window.webkit.messageHandlers.targetDuration.postMessage(null);
+                }
             }
 
-            function setupTargetWeightObserver() {
+            function setupTargetObserver() {
                 const previewHeader = document.querySelector('.session-preview-header');
                 if (!previewHeader) {
                     // Preview not ready, retry in 500ms
-                    setTimeout(setupTargetWeightObserver, 500);
+                    setTimeout(setupTargetObserver, 500);
                     return;
                 }
 
                 const observer = new MutationObserver(function() {
-                    scrapeAndSendWeight();
+                    scrapeAndSendValues();
                 });
 
                 // Watch for changes in the preview header
@@ -184,14 +204,82 @@ enum JavaScriptBridge {
                     characterData: true
                 });
 
-                // Send initial value
-                scrapeAndSendWeight();
+                // Send initial values
+                scrapeAndSendValues();
             }
 
             if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', setupTargetWeightObserver);
+                document.addEventListener('DOMContentLoaded', setupTargetObserver);
             } else {
-                setupTargetWeightObserver();
+                setupTargetObserver();
+            }
+        })();
+    """
+
+    /// MutationObserver script for real-time remaining time from timer display
+    static let remainingTimeObserverScript = """
+        (function() {
+            function scrapeAndSendRemainingTime() {
+                const timerValue = document.querySelector('.timer-value');
+                if (!timerValue) {
+                    window.webkit.messageHandlers.remainingTime.postMessage(null);
+                    return;
+                }
+
+                const text = timerValue.textContent.trim();
+                let seconds;
+
+                if (text.startsWith('+')) {
+                    // Past target: "+3" means 3 seconds overtime, store as -3
+                    seconds = -parseInt(text.substring(1));
+                } else {
+                    // Normal: "30" means 30 seconds remaining
+                    seconds = parseInt(text);
+                }
+
+                if (!isNaN(seconds)) {
+                    window.webkit.messageHandlers.remainingTime.postMessage(seconds);
+                } else {
+                    window.webkit.messageHandlers.remainingTime.postMessage(null);
+                }
+            }
+
+            function setupRemainingTimeObserver() {
+                // Watch for timer-value element to appear
+                const timerValue = document.querySelector('.timer-value');
+                if (!timerValue) {
+                    // Timer not ready, retry in 200ms
+                    setTimeout(setupRemainingTimeObserver, 200);
+                    return;
+                }
+
+                const observer = new MutationObserver(function() {
+                    scrapeAndSendRemainingTime();
+                });
+
+                // Watch the timer value for text changes
+                observer.observe(timerValue, {
+                    childList: true,
+                    subtree: true,
+                    characterData: true
+                });
+
+                // Also watch parent for class changes (timer state changes)
+                if (timerValue.parentElement) {
+                    observer.observe(timerValue.parentElement, {
+                        childList: true,
+                        subtree: true
+                    });
+                }
+
+                // Send initial value
+                scrapeAndSendRemainingTime();
+            }
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', setupRemainingTimeObserver);
+            } else {
+                setupRemainingTimeObserver();
             }
         })();
     """

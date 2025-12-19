@@ -41,6 +41,7 @@ struct ContentView: View {
     @Environment(\.scenePhase) private var scenePhase
     @StateObject private var bluetoothManager = BluetoothManager()
     @StateObject private var progressorHandler = ProgressorHandler()
+    @StateObject private var activityManager = ActivityManager()
 
     @State private var isFailButtonEnabled = false
     @State private var isConnected = false
@@ -48,6 +49,8 @@ struct ContentView: View {
     @State private var showSettings = false
     @State private var cancellables = Set<AnyCancellable>()
     @State private var scrapedTargetWeight: Float?
+    @State private var scrapedTargetDuration: Int?
+    @State private var scrapedRemainingTime: Int?
     @AppStorage("useLbs") private var useLbs = false
     @AppStorage("enableHaptics") private var enableHaptics = true
     @AppStorage("enableTargetSound") private var enableTargetSound = true
@@ -68,12 +71,14 @@ struct ContentView: View {
     @AppStorage("engageThreshold") private var engageThreshold: Double = 3.0
     @AppStorage("failThreshold") private var failThreshold: Double = 1.0
     @AppStorage("backgroundTimeSync") private var backgroundTimeSync = true
+    @AppStorage("enableLiveActivity") private var enableLiveActivity = false
     @State private var dragOffset: CGSize = .zero
     @State private var displayedMean: Float?
     @State private var displayedStdDev: Float?
     @State private var statsHideTimer: Timer?
     @State private var buttonStateTimer: Timer?
     @State private var backgroundedAt: Date?
+    @State private var wasGrippingAtBackground: Bool = false
 
     private let webCoordinator = WebViewCoordinator()
 
@@ -128,17 +133,28 @@ struct ContentView: View {
         }
         .onChange(of: scenePhase) { _, newPhase in
             switch newPhase {
+            case .inactive:
+                // Start Live Activity only when actively gripping (not during prep)
+                wasGrippingAtBackground = progressorHandler.engaged
+                if enableLiveActivity, progressorHandler.engaged, let remaining = scrapedRemainingTime {
+                    let elapsed = progressorHandler.gripElapsedSeconds
+                    activityManager.startActivity(elapsedSeconds: elapsed, remainingSeconds: remaining)
+                }
             case .background:
                 if backgroundTimeSync {
                     backgroundedAt = Date()
                     webCoordinator.recordBackgroundStart()
                 }
             case .active:
-                if backgroundTimeSync, let backgroundedAt = backgroundedAt {
+                // Only add background time if we were gripping when we went to background
+                // This prevents prep time from being added to grip elapsed
+                if backgroundTimeSync, wasGrippingAtBackground, let backgroundedAt = backgroundedAt {
                     let elapsedMs = Date().timeIntervalSince(backgroundedAt) * 1000
                     webCoordinator.addBackgroundTime(milliseconds: elapsedMs)
                 }
                 self.backgroundedAt = nil
+                // End Live Activity when returning to foreground
+                activityManager.endActivity()
             default:
                 break
             }
@@ -330,16 +346,29 @@ struct ContentView: View {
             scrapedTargetWeight = weight
         }
 
+        // WebView target duration scraping
+        webCoordinator.onTargetDurationChanged = { duration in
+            Log.app.info("Target duration scraped: \(String(describing: duration))")
+            scrapedTargetDuration = duration
+        }
+
+        // WebView remaining time scraping
+        webCoordinator.onRemainingTimeChanged = { remaining in
+            scrapedRemainingTime = remaining
+        }
+
         // BLE force samples -> Handler
         bluetoothManager.onForceSample = { force in
             progressorHandler.processSample(force)
         }
 
-        // Handler grip failed -> Click fail button
+        // Handler grip failed -> Click fail button and end Live Activity
+        let activityMgr = activityManager
         progressorHandler.gripFailed
             .receive(on: DispatchQueue.main)
-            .sink { [webCoordinator] in
+            .sink { [webCoordinator, activityMgr] in
                 webCoordinator.clickFailButton()
+                activityMgr.endActivity()
                 if UserDefaults.standard.object(forKey: "enableHaptics") as? Bool ?? true {
                     HapticManager.warning()
                 }

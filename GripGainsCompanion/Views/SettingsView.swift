@@ -47,6 +47,7 @@ struct SettingsView: View {
     @AppStorage("useKeyboardInput") private var useKeyboardInput: Bool = false
     @AppStorage("enableCalibration") private var enableCalibration = true
     @AppStorage("backgroundTimeSync") private var backgroundTimeSync = true
+    @AppStorage("enableLiveActivity") private var enableLiveActivity = false
     @AppStorage("engageThreshold") private var engageThreshold: Double = 3.0  // stored in kg
     @AppStorage("failThreshold") private var failThreshold: Double = 1.0      // stored in kg
     @State private var manualTargetText: String = "20.00"
@@ -310,11 +311,18 @@ struct SettingsView: View {
                 }
 
                 // Timer section
-                Section {
+                Section("Experimental") {
                     Toggle("Background Timer Sync", isOn: $backgroundTimeSync)
                     Text("Keeps the timer accurate when the app is in background.")
                         .font(.caption)
                         .foregroundColor(.secondary)
+
+                    if backgroundTimeSync {
+                        Toggle("Live Activity", isOn: $enableLiveActivity)
+                        Text("Shows elapsed and remaining time in Dynamic Island when backgrounded.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
                 }
 
                 // Units section

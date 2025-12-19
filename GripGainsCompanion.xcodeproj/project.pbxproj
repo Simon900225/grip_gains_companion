@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 56;
+	objectVersion = 70;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -22,17 +22,30 @@
 		015 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 116 /* SettingsView.swift */; };
 		016 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 117 /* Assets.xcassets */; };
 		7E02DCD62EF23D4000C60B3B /* SoundManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E02DCD52EF23D4000C60B3B /* SoundManager.swift */; };
+		7E69085E2EF5188500206778 /* GripTimerAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E69085D2EF5188500206778 /* GripTimerAttributes.swift */; };
+		7E6908602EF5189300206778 /* ActivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E69085F2EF5189300206778 /* ActivityManager.swift */; };
 		7E7ABC132EF3831100CC854B /* ForceGraphView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E7ABC122EF3831100CC854B /* ForceGraphView.swift */; };
 		7EC12C912EF1195800A9D66C /* WeightFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7EC12C8F2EF1195800A9D66C /* WeightFormatter.swift */; };
 		7EC12C922EF1195800A9D66C /* Log.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7EC12C8E2EF1195800A9D66C /* Log.swift */; };
 		7EC12C932EF1195800A9D66C /* HapticManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7EC12C8D2EF1195800A9D66C /* HapticManager.swift */; };
 		7EC12C952EF1196000A9D66C /* StatusBarState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7EC12C942EF1196000A9D66C /* StatusBarState.swift */; };
+		7EEE2BF42EF56E9800FD9EF1 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7EEE2BD52EF56E0000FD9EF1 /* WidgetKit.framework */; };
+		7EEE2BF52EF56E9800FD9EF1 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7EEE2BD72EF56E0000FD9EF1 /* SwiftUI.framework */; };
+		7EEE2C022EF56E9900FD9EF1 /* GripGainsTimerWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 7EEE2BF32EF56E9800FD9EF1 /* GripGainsTimerWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		7EEE2C082EF571D400FD9EF1 /* GripTimerAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E69085D2EF5188500206778 /* GripTimerAttributes.swift */; };
 		T001 /* WeightFormatterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T101 /* WeightFormatterTests.swift */; };
 		T002 /* ProgressorHandlerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T102 /* ProgressorHandlerTests.swift */; };
 		T003 /* WebViewCoordinatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T103 /* WebViewCoordinatorTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		7EEE2C002EF56E9900FD9EF1 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 600 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 7EEE2BF22EF56E9800FD9EF1;
+			remoteInfo = GripGainsTimerWidgetExtension;
+		};
 		T200 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 600 /* Project object */;
@@ -42,12 +55,22 @@
 		};
 /* End PBXContainerItemProxy section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		7EEE2BEA2EF56E0100FD9EF1 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				7EEE2C022EF56E9900FD9EF1 /* GripGainsTimerWidgetExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		100 /* GripGainsCompanion.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GripGainsCompanion.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		T100 /* GripGainsCompanionTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = GripGainsCompanionTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		T101 /* WeightFormatterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeightFormatterTests.swift; sourceTree = "<group>"; };
-		T102 /* ProgressorHandlerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressorHandlerTests.swift; sourceTree = "<group>"; };
-		T103 /* WebViewCoordinatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebViewCoordinatorTests.swift; sourceTree = "<group>"; };
 		101 /* GripGainsCompanion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GripGainsCompanion.swift; sourceTree = "<group>"; };
 		102 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		103 /* StatusBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBarView.swift; sourceTree = "<group>"; };
@@ -64,18 +87,50 @@
 		116 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		117 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		7E02DCD52EF23D4000C60B3B /* SoundManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundManager.swift; sourceTree = "<group>"; };
+		7E69085D2EF5188500206778 /* GripTimerAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GripTimerAttributes.swift; sourceTree = "<group>"; };
+		7E69085F2EF5189300206778 /* ActivityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityManager.swift; sourceTree = "<group>"; };
 		7E7ABC122EF3831100CC854B /* ForceGraphView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForceGraphView.swift; sourceTree = "<group>"; };
 		7EC12C8D2EF1195800A9D66C /* HapticManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HapticManager.swift; sourceTree = "<group>"; };
 		7EC12C8E2EF1195800A9D66C /* Log.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Log.swift; sourceTree = "<group>"; };
 		7EC12C8F2EF1195800A9D66C /* WeightFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeightFormatter.swift; sourceTree = "<group>"; };
 		7EC12C942EF1196000A9D66C /* StatusBarState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBarState.swift; sourceTree = "<group>"; };
+		7EEE2BD52EF56E0000FD9EF1 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		7EEE2BD72EF56E0000FD9EF1 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
+		7EEE2BF32EF56E9800FD9EF1 /* GripGainsTimerWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = GripGainsTimerWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		T100 /* GripGainsCompanionTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = GripGainsCompanionTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		T101 /* WeightFormatterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeightFormatterTests.swift; sourceTree = "<group>"; };
+		T102 /* ProgressorHandlerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressorHandlerTests.swift; sourceTree = "<group>"; };
+		T103 /* WebViewCoordinatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebViewCoordinatorTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		7EEE2C032EF56E9900FD9EF1 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 7EEE2BF22EF56E9800FD9EF1 /* GripGainsTimerWidgetExtension */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		7EEE2BF62EF56E9800FD9EF1 /* GripGainsTimerWidget */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (7EEE2C032EF56E9900FD9EF1 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = GripGainsTimerWidget; sourceTree = "<group>"; };
+/* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		200 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		7EEE2BF02EF56E9800FD9EF1 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7EEE2BF52EF56E9800FD9EF1 /* SwiftUI.framework in Frameworks */,
+				7EEE2BF42EF56E9800FD9EF1 /* WidgetKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -94,18 +149,10 @@
 			children = (
 				301 /* GripGainsCompanion */,
 				T300 /* GripGainsCompanionTests */,
+				7EEE2BF62EF56E9800FD9EF1 /* GripGainsTimerWidget */,
+				7EEE2BD42EF56E0000FD9EF1 /* Frameworks */,
 				302 /* Products */,
 			);
-			sourceTree = "<group>";
-		};
-		T300 /* GripGainsCompanionTests */ = {
-			isa = PBXGroup;
-			children = (
-				T101 /* WeightFormatterTests.swift */,
-				T102 /* ProgressorHandlerTests.swift */,
-				T103 /* WebViewCoordinatorTests.swift */,
-			);
-			path = GripGainsCompanionTests;
 			sourceTree = "<group>";
 		};
 		301 /* GripGainsCompanion */ = {
@@ -128,6 +175,7 @@
 			children = (
 				100 /* GripGainsCompanion.app */,
 				T100 /* GripGainsCompanionTests.xctest */,
+				7EEE2BF32EF56E9800FD9EF1 /* GripGainsTimerWidgetExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -143,6 +191,7 @@
 		304 /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				7E69085D2EF5188500206778 /* GripTimerAttributes.swift */,
 				113 /* ProgressorDevice.swift */,
 				7EC12C942EF1196000A9D66C /* StatusBarState.swift */,
 			);
@@ -152,6 +201,7 @@
 		305 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				7E69085F2EF5189300206778 /* ActivityManager.swift */,
 				307 /* BLE */,
 				308 /* Web */,
 			);
@@ -201,6 +251,25 @@
 			path = Utils;
 			sourceTree = "<group>";
 		};
+		7EEE2BD42EF56E0000FD9EF1 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				7EEE2BD52EF56E0000FD9EF1 /* WidgetKit.framework */,
+				7EEE2BD72EF56E0000FD9EF1 /* SwiftUI.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		T300 /* GripGainsCompanionTests */ = {
+			isa = PBXGroup;
+			children = (
+				T101 /* WeightFormatterTests.swift */,
+				T102 /* ProgressorHandlerTests.swift */,
+				T103 /* WebViewCoordinatorTests.swift */,
+			);
+			path = GripGainsCompanionTests;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -211,15 +280,39 @@
 				401 /* Sources */,
 				200 /* Frameworks */,
 				402 /* Resources */,
+				7EEE2BEA2EF56E0100FD9EF1 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				7EEE2C012EF56E9900FD9EF1 /* PBXTargetDependency */,
 			);
 			name = GripGainsCompanion;
 			productName = GripGainsCompanion;
 			productReference = 100 /* GripGainsCompanion.app */;
 			productType = "com.apple.product-type.application";
+		};
+		7EEE2BF22EF56E9800FD9EF1 /* GripGainsTimerWidgetExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 7EEE2C042EF56E9900FD9EF1 /* Build configuration list for PBXNativeTarget "GripGainsTimerWidgetExtension" */;
+			buildPhases = (
+				7EEE2BEF2EF56E9800FD9EF1 /* Sources */,
+				7EEE2BF02EF56E9800FD9EF1 /* Frameworks */,
+				7EEE2BF12EF56E9800FD9EF1 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				7EEE2BF62EF56E9800FD9EF1 /* GripGainsTimerWidget */,
+			);
+			name = GripGainsTimerWidgetExtension;
+			packageProductDependencies = (
+			);
+			productName = GripGainsTimerWidgetExtension;
+			productReference = 7EEE2BF32EF56E9800FD9EF1 /* GripGainsTimerWidgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 		T400 /* GripGainsCompanionTests */ = {
 			isa = PBXNativeTarget;
@@ -246,11 +339,14 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 1500;
+				LastSwiftUpdateCheck = 2620;
 				LastUpgradeCheck = 2610;
 				TargetAttributes = {
 					400 = {
 						CreatedOnToolsVersion = 15.0;
+					};
+					7EEE2BF22EF56E9800FD9EF1 = {
+						CreatedOnToolsVersion = 26.2;
 					};
 					T400 = {
 						CreatedOnToolsVersion = 15.0;
@@ -273,6 +369,7 @@
 			targets = (
 				400 /* GripGainsCompanion */,
 				T400 /* GripGainsCompanionTests */,
+				7EEE2BF22EF56E9800FD9EF1 /* GripGainsTimerWidgetExtension */,
 			);
 		};
 /* End PBXProject section */
@@ -283,6 +380,13 @@
 			buildActionMask = 2147483647;
 			files = (
 				016 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		7EEE2BF12EF56E9800FD9EF1 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -302,11 +406,13 @@
 			files = (
 				001 /* GripGainsCompanion.swift in Sources */,
 				002 /* ContentView.swift in Sources */,
+				7E69085E2EF5188500206778 /* GripTimerAttributes.swift in Sources */,
 				7E7ABC132EF3831100CC854B /* ForceGraphView.swift in Sources */,
 				003 /* StatusBarView.swift in Sources */,
 				004 /* AppConstants.swift in Sources */,
 				007 /* BluetoothManager.swift in Sources */,
 				008 /* ProgressorService.swift in Sources */,
+				7E6908602EF5189300206778 /* ActivityManager.swift in Sources */,
 				009 /* ProgressorHandler.swift in Sources */,
 				7EC12C912EF1195800A9D66C /* WeightFormatter.swift in Sources */,
 				7EC12C922EF1195800A9D66C /* Log.swift in Sources */,
@@ -319,6 +425,14 @@
 				014 /* DeviceScannerView.swift in Sources */,
 				015 /* SettingsView.swift in Sources */,
 				7E02DCD62EF23D4000C60B3B /* SoundManager.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		7EEE2BEF2EF56E9800FD9EF1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7EEE2C082EF571D400FD9EF1 /* GripTimerAttributes.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -335,6 +449,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		7EEE2C012EF56E9900FD9EF1 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 7EEE2BF22EF56E9800FD9EF1 /* GripGainsTimerWidgetExtension */;
+			targetProxy = 7EEE2C002EF56E9900FD9EF1 /* PBXContainerItemProxy */;
+		};
 		T202 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 400 /* GripGainsCompanion */;
@@ -525,6 +644,67 @@
 			};
 			name = Release;
 		};
+		7EEE2C052EF56E9900FD9EF1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = GripGainsTimerWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = GripGainsTimerWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.gripgains.companion.GripGainsTimerWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		7EEE2C062EF56E9900FD9EF1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = GripGainsTimerWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = GripGainsTimerWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.gripgains.companion.GripGainsTimerWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 		T702 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -573,20 +753,29 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		T500 /* Build configuration list for PBXNativeTarget "GripGainsCompanionTests" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				T702 /* Debug */,
-				T703 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
 		601 /* Build configuration list for PBXProject "GripGainsCompanion" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				700 /* Debug */,
 				701 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		7EEE2C042EF56E9900FD9EF1 /* Build configuration list for PBXNativeTarget "GripGainsTimerWidgetExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				7EEE2C052EF56E9900FD9EF1 /* Debug */,
+				7EEE2C062EF56E9900FD9EF1 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		T500 /* Build configuration list for PBXNativeTarget "GripGainsCompanionTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				T702 /* Debug */,
+				T703 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

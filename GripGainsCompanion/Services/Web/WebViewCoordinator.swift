@@ -11,6 +11,12 @@ class WebViewCoordinator: NSObject, WKScriptMessageHandler, WKNavigationDelegate
     /// Callback when target weight changes (scraped from website)
     var onTargetWeightChanged: ((Float?) -> Void)?
 
+    /// Callback when target duration changes (scraped from website, in seconds)
+    var onTargetDurationChanged: ((Int?) -> Void)?
+
+    /// Callback when remaining time changes (scraped from timer display, in seconds, negative = overtime)
+    var onRemainingTimeChanged: ((Int?) -> Void)?
+
     override init() {
         super.init()
     }
@@ -45,6 +51,24 @@ class WebViewCoordinator: NSObject, WKScriptMessageHandler, WKNavigationDelegate
                     self?.onTargetWeightChanged?(self?.parseWeight(weightString))
                 } else {
                     self?.onTargetWeightChanged?(nil)
+                }
+            }
+
+        case "targetDuration":
+            DispatchQueue.main.async { [weak self] in
+                if let duration = message.body as? Int {
+                    self?.onTargetDurationChanged?(duration)
+                } else {
+                    self?.onTargetDurationChanged?(nil)
+                }
+            }
+
+        case "remainingTime":
+            DispatchQueue.main.async { [weak self] in
+                if let remaining = message.body as? Int {
+                    self?.onRemainingTimeChanged?(remaining)
+                } else {
+                    self?.onRemainingTimeChanged?(nil)
                 }
             }
 

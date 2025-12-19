@@ -107,6 +107,14 @@ class ProgressorHandler: ObservableObject {
     var calibrating: Bool { state.isCalibrating }
     var waitingForSamples: Bool { state.isWaitingForSamples }
 
+    /// Elapsed seconds since grip started (0 if not gripping)
+    var gripElapsedSeconds: Int {
+        if case .gripping(_, let startTime, _) = state {
+            return Int(Date().timeIntervalSince(startTime))
+        }
+        return 0
+    }
+
     // MARK: - Public Methods
 
     /// Process a single weight sample from the BLE device

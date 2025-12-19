@@ -23,6 +23,8 @@ struct TimerWebView: UIViewRepresentable {
         // Add message handlers for JS -> Swift communication
         contentController.add(coordinator, name: "buttonState")
         contentController.add(coordinator, name: "targetWeight")
+        contentController.add(coordinator, name: "targetDuration")
+        contentController.add(coordinator, name: "remainingTime")
 
         // Inject background time offset script at document start (must run before page scripts)
         let backgroundTimeScript = WKUserScript(
@@ -48,6 +50,14 @@ struct TimerWebView: UIViewRepresentable {
         )
         contentController.addUserScript(targetWeightScript)
 
+        // Inject remaining time observer script
+        let remainingTimeScript = WKUserScript(
+            source: JavaScriptBridge.remainingTimeObserverScript,
+            injectionTime: .atDocumentEnd,
+            forMainFrameOnly: true
+        )
+        contentController.addUserScript(remainingTimeScript)
+
         let webView = WKWebView(frame: .zero, configuration: config)
         webView.navigationDelegate = coordinator
         coordinator.setWebView(webView)
@@ -68,5 +78,7 @@ struct TimerWebView: UIViewRepresentable {
         // Clean up message handlers to avoid memory leaks
         uiView.configuration.userContentController.removeScriptMessageHandler(forName: "buttonState")
         uiView.configuration.userContentController.removeScriptMessageHandler(forName: "targetWeight")
+        uiView.configuration.userContentController.removeScriptMessageHandler(forName: "targetDuration")
+        uiView.configuration.userContentController.removeScriptMessageHandler(forName: "remainingTime")
     }
 }
