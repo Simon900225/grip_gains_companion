@@ -283,6 +283,10 @@ struct ContentView: View {
     /// The effective target weight to use (manual or scraped), or nil if disabled
     private var effectiveTargetWeight: Float? {
         guard enableTargetWeight else { return nil }
+        // When auto-select is enabled, always use scraped value (what's in web UI)
+        if autoSelectWeight {
+            return scrapedTargetWeight
+        }
         if useManualTarget {
             return Float(manualTargetWeight)
         }
