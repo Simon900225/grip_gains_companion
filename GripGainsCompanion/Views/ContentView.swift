@@ -67,6 +67,7 @@ struct ContentView: View {
     @AppStorage("enableCalibration") private var enableCalibration = true
     @AppStorage("engageThreshold") private var engageThreshold: Double = 3.0
     @AppStorage("failThreshold") private var failThreshold: Double = 1.0
+    @AppStorage("backgroundTimeSync") private var backgroundTimeSync = true
     @State private var dragOffset: CGSize = .zero
     @State private var displayedMean: Float?
     @State private var displayedStdDev: Float?
@@ -128,14 +129,16 @@ struct ContentView: View {
         .onChange(of: scenePhase) { _, newPhase in
             switch newPhase {
             case .background:
-                backgroundedAt = Date()
-                webCoordinator.recordBackgroundStart()
+                if backgroundTimeSync {
+                    backgroundedAt = Date()
+                    webCoordinator.recordBackgroundStart()
+                }
             case .active:
-                if let backgroundedAt = backgroundedAt {
+                if backgroundTimeSync, let backgroundedAt = backgroundedAt {
                     let elapsedMs = Date().timeIntervalSince(backgroundedAt) * 1000
                     webCoordinator.addBackgroundTime(milliseconds: elapsedMs)
-                    self.backgroundedAt = nil
                 }
+                self.backgroundedAt = nil
             default:
                 break
             }

@@ -25,29 +25,33 @@ enum JavaScriptBridge {
 
             // Called when app enters background
             window._recordBackgroundStart = function() {
-                timerElapsedAtBackgroundStart = getElapsedTime();
+                try {
+                    timerElapsedAtBackgroundStart = getElapsedTime();
+                } catch (e) {}
             };
 
             // Called when app resumes from background
             window._addBackgroundTime = function(ms) {
-                offset += ms;
+                try {
+                    offset += ms;
 
-                // Calculate missed display ticks (JS is throttled in background)
-                const timerNow = getElapsedTime();
-                const actualAdvance = timerNow - timerElapsedAtBackgroundStart;
-                const expectedAdvance = Math.floor(ms / 1000);
-                const missedTicks = Math.max(0, expectedAdvance - actualAdvance);
+                    // Calculate missed display ticks (JS is throttled in background)
+                    const timerNow = getElapsedTime();
+                    const actualAdvance = timerNow - timerElapsedAtBackgroundStart;
+                    const expectedAdvance = Math.floor(ms / 1000);
+                    const missedTicks = Math.max(0, expectedAdvance - actualAdvance);
 
-                // Fire missed ticks to update display
-                if (missedTicks > 0) {
-                    activeIntervals.forEach((info) => {
-                        if (info.callback) {
-                            for (let i = 0; i < missedTicks; i++) {
-                                try { info.callback(); } catch (e) {}
+                    // Fire missed ticks to update display
+                    if (missedTicks > 0) {
+                        activeIntervals.forEach((info) => {
+                            if (info.callback) {
+                                for (let i = 0; i < missedTicks; i++) {
+                                    try { info.callback(); } catch (e) {}
+                                }
                             }
-                        }
-                    });
-                }
+                        });
+                    }
+                } catch (e) {}
             };
 
             // Patch Date.now to include offset

@@ -46,6 +46,7 @@ struct SettingsView: View {
     @State private var targetDecimal: Int = 0  // 0, 5, 10, 15... 95
     @AppStorage("useKeyboardInput") private var useKeyboardInput: Bool = false
     @AppStorage("enableCalibration") private var enableCalibration = true
+    @AppStorage("backgroundTimeSync") private var backgroundTimeSync = true
     @AppStorage("engageThreshold") private var engageThreshold: Double = 3.0  // stored in kg
     @AppStorage("failThreshold") private var failThreshold: Double = 1.0      // stored in kg
     @State private var manualTargetText: String = "20.00"
@@ -306,6 +307,14 @@ struct SettingsView: View {
                             }
                         }
                     }
+                }
+
+                // Timer section
+                Section {
+                    Toggle("Background Timer Sync", isOn: $backgroundTimeSync)
+                    Text("Keeps the timer accurate when the app is in background.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
 
                 // Units section
