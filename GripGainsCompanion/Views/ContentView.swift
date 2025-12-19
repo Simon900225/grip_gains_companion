@@ -284,17 +284,50 @@ struct ContentView: View {
             .sheet(isPresented: $showSettings) { settingsSheet }
     }
 
-    private var mainViewWithHandlers: some View {
+    private var mainContentWithTargetHandlers: some View {
         mainContent
-            .onChange(of: useManualTarget) { _, _ in updateTargetWeight() }
-            .onChange(of: manualTargetWeight) { _, _ in updateTargetWeight() }
+            .onChange(of: useManualTarget) { _, enabled in
+                updateTargetWeight()
+                // Reset auto-select to measured when manual target is disabled
+                if !enabled && autoSelectFromManual {
+                    autoSelectFromManual = false
+                }
+            }
+            .onChange(of: manualTargetWeight) { _, newValue in
+                updateTargetWeight()
+                // Update floating control when manual target changes
+                if autoSelectWeight && autoSelectFromManual {
+                    suggestedWeightKg = Float(newValue)
+                }
+            }
+            .onChange(of: autoSelectFromManual) { _, useManual in
+                if useManual {
+                    // Enable manual target when manual mode is selected
+                    if !useManualTarget {
+                        useManualTarget = true
+                    }
+                    // Initialize floating control from manual target
+                    if autoSelectWeight {
+                        suggestedWeightKg = Float(manualTargetWeight)
+                    }
+                } else {
+                    // Disable manual target when measured mode is selected
+                    if useManualTarget {
+                        useManualTarget = false
+                    }
+                }
+            }
             .onChange(of: scrapedTargetWeight) { _, newValue in
                 updateTargetWeight()
-                // Initialize suggested weight to GG target
-                if let target = newValue {
+                // Initialize suggested weight to GG target (only when feature enabled)
+                if autoSelectWeight, let target = newValue {
                     suggestedWeightKg = target
                 }
             }
+    }
+
+    private var mainViewWithHandlers: some View {
+        mainContentWithTargetHandlers
             .onChange(of: progressorHandler.weightMedian) { _, newMedian in
                 // Update suggested weight when measurement is taken
                 if autoSelectWeight, let median = newMedian {
@@ -308,11 +341,15 @@ struct ContentView: View {
             }
             .onChange(of: scrapedGripper) { _, _ in
                 // Exercise changed, re-scrape weight options for correct increments
-                webCoordinator.scrapeWeightOptions()
+                if autoSelectWeight {
+                    webCoordinator.scrapeWeightOptions()
+                }
             }
             .onChange(of: scrapedSide) { _, _ in
                 // Side changed, re-scrape weight options for correct increments
-                webCoordinator.scrapeWeightOptions()
+                if autoSelectWeight {
+                    webCoordinator.scrapeWeightOptions()
+                }
             }
             .onChange(of: weightTolerance) { _, newValue in
                 progressorHandler.weightTolerance = Float(newValue)
