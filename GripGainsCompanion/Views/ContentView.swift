@@ -85,6 +85,60 @@ struct PercentageThresholdSyncModifier: ViewModifier {
     }
 }
 
+// MARK: - Engage Bounds Sync Modifier
+
+struct EngageBoundsSyncModifier: ViewModifier {
+    let engageFloor: Double
+    let engageCeiling: Double
+    let progressorHandler: ProgressorHandler
+
+    func body(content: Content) -> some View {
+        content
+            .onChange(of: engageFloor) { _, newValue in
+                progressorHandler.engageFloor = Float(newValue)
+            }
+            .onChange(of: engageCeiling) { _, newValue in
+                progressorHandler.engageCeiling = Float(newValue)
+            }
+    }
+}
+
+// MARK: - Disengage Bounds Sync Modifier
+
+struct DisengageBoundsSyncModifier: ViewModifier {
+    let disengageFloor: Double
+    let disengageCeiling: Double
+    let progressorHandler: ProgressorHandler
+
+    func body(content: Content) -> some View {
+        content
+            .onChange(of: disengageFloor) { _, newValue in
+                progressorHandler.disengageFloor = Float(newValue)
+            }
+            .onChange(of: disengageCeiling) { _, newValue in
+                progressorHandler.disengageCeiling = Float(newValue)
+            }
+    }
+}
+
+// MARK: - Tolerance Bounds Sync Modifier
+
+struct ToleranceBoundsSyncModifier: ViewModifier {
+    let toleranceFloor: Double
+    let toleranceCeiling: Double
+    let progressorHandler: ProgressorHandler
+
+    func body(content: Content) -> some View {
+        content
+            .onChange(of: toleranceFloor) { _, newValue in
+                progressorHandler.toleranceFloor = Float(newValue)
+            }
+            .onChange(of: toleranceCeiling) { _, newValue in
+                progressorHandler.toleranceCeiling = Float(newValue)
+            }
+    }
+}
+
 /// Main view that orchestrates all components
 struct ContentView: View {
     @Environment(\.scenePhase) private var scenePhase
@@ -123,6 +177,12 @@ struct ContentView: View {
     @AppStorage("engagePercentage") private var engagePercentage: Double = Double(AppConstants.defaultEngagePercentage)
     @AppStorage("disengagePercentage") private var disengagePercentage: Double = Double(AppConstants.defaultDisengagePercentage)
     @AppStorage("tolerancePercentage") private var tolerancePercentage: Double = Double(AppConstants.defaultTolerancePercentage)
+    @AppStorage("engageFloor") private var engageFloor: Double = Double(AppConstants.defaultEngageFloor)
+    @AppStorage("engageCeiling") private var engageCeiling: Double = Double(AppConstants.defaultEngageCeiling)
+    @AppStorage("disengageFloor") private var disengageFloor: Double = Double(AppConstants.defaultDisengageFloor)
+    @AppStorage("disengageCeiling") private var disengageCeiling: Double = Double(AppConstants.defaultDisengageCeiling)
+    @AppStorage("toleranceFloor") private var toleranceFloor: Double = Double(AppConstants.defaultToleranceFloor)
+    @AppStorage("toleranceCeiling") private var toleranceCeiling: Double = Double(AppConstants.defaultToleranceCeiling)
     @AppStorage("backgroundTimeSync") private var backgroundTimeSync = true
     @AppStorage("enableLiveActivity") private var enableLiveActivity = false
     @AppStorage("autoSelectWeight") private var autoSelectWeight = false
@@ -398,6 +458,21 @@ struct ContentView: View {
                 engagePercentage: engagePercentage,
                 disengagePercentage: disengagePercentage,
                 tolerancePercentage: tolerancePercentage,
+                progressorHandler: progressorHandler
+            ))
+            .modifier(EngageBoundsSyncModifier(
+                engageFloor: engageFloor,
+                engageCeiling: engageCeiling,
+                progressorHandler: progressorHandler
+            ))
+            .modifier(DisengageBoundsSyncModifier(
+                disengageFloor: disengageFloor,
+                disengageCeiling: disengageCeiling,
+                progressorHandler: progressorHandler
+            ))
+            .modifier(ToleranceBoundsSyncModifier(
+                toleranceFloor: toleranceFloor,
+                toleranceCeiling: toleranceCeiling,
                 progressorHandler: progressorHandler
             ))
     }
@@ -694,6 +769,12 @@ struct ContentView: View {
         progressorHandler.engagePercentage = Float(engagePercentage)
         progressorHandler.disengagePercentage = Float(disengagePercentage)
         progressorHandler.tolerancePercentage = Float(tolerancePercentage)
+        progressorHandler.engageFloor = Float(engageFloor)
+        progressorHandler.engageCeiling = Float(engageCeiling)
+        progressorHandler.disengageFloor = Float(disengageFloor)
+        progressorHandler.disengageCeiling = Float(disengageCeiling)
+        progressorHandler.toleranceFloor = Float(toleranceFloor)
+        progressorHandler.toleranceCeiling = Float(toleranceCeiling)
 
         // Periodic button state polling as backup (only in idle state)
         buttonStateTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in

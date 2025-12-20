@@ -115,26 +115,50 @@ class ProgressorHandler: ObservableObject {
     /// Tolerance as percentage of target weight (0.0-1.0)
     var tolerancePercentage: Float = AppConstants.defaultTolerancePercentage
 
+    // MARK: - Percentage Threshold Bounds
+
+    /// Minimum engage threshold in kg (0 = disabled, use pure percentage)
+    var engageFloor: Float = AppConstants.defaultEngageFloor
+    /// Maximum engage threshold in kg (0 = disabled, use pure percentage)
+    var engageCeiling: Float = AppConstants.defaultEngageCeiling
+    /// Minimum disengage threshold in kg (0 = disabled, use pure percentage)
+    var disengageFloor: Float = AppConstants.defaultDisengageFloor
+    /// Maximum disengage threshold in kg (0 = disabled, use pure percentage)
+    var disengageCeiling: Float = AppConstants.defaultDisengageCeiling
+    /// Minimum tolerance in kg (0 = disabled, use pure percentage)
+    var toleranceFloor: Float = AppConstants.defaultToleranceFloor
+    /// Maximum tolerance in kg (0 = disabled, use pure percentage)
+    var toleranceCeiling: Float = AppConstants.defaultToleranceCeiling
+
     /// Effective engage threshold - uses percentage if enabled, otherwise fixed kg
+    /// When percentage mode is enabled, applies floor/ceiling bounds (0 = disabled)
     private var effectiveEngageThreshold: Float {
         if enablePercentageThresholds, let target = targetWeight {
-            return target * engagePercentage
+            let raw = target * engagePercentage
+            let floored = engageFloor > 0 ? max(raw, engageFloor) : raw
+            return engageCeiling > 0 ? min(floored, engageCeiling) : floored
         }
         return engageThreshold
     }
 
     /// Effective fail threshold - uses percentage if enabled, otherwise fixed kg
+    /// When percentage mode is enabled, applies floor/ceiling bounds (0 = disabled)
     private var effectiveFailThreshold: Float {
         if enablePercentageThresholds, let target = targetWeight {
-            return target * disengagePercentage
+            let raw = target * disengagePercentage
+            let floored = disengageFloor > 0 ? max(raw, disengageFloor) : raw
+            return disengageCeiling > 0 ? min(floored, disengageCeiling) : floored
         }
         return failThreshold
     }
 
     /// Effective tolerance - uses percentage if enabled, otherwise fixed kg
+    /// When percentage mode is enabled, applies floor/ceiling bounds (0 = disabled)
     private var effectiveTolerance: Float {
         if enablePercentageThresholds, let target = targetWeight {
-            return target * tolerancePercentage
+            let raw = target * tolerancePercentage
+            let floored = toleranceFloor > 0 ? max(raw, toleranceFloor) : raw
+            return toleranceCeiling > 0 ? min(floored, toleranceCeiling) : floored
         }
         return weightTolerance
     }

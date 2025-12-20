@@ -774,7 +774,7 @@ final class ProgressorHandlerTests: XCTestCase {
 
     // MARK: - Percentage-Based Threshold Tests
 
-    /// Helper to set up handler with percentage thresholds enabled
+    /// Helper to set up handler with percentage thresholds enabled (pure percentage, no floor/ceiling)
     private func setupWithPercentageThresholds(
         target: Float,
         engage: Float = 0.50,
@@ -786,6 +786,13 @@ final class ProgressorHandlerTests: XCTestCase {
         handler.engagePercentage = engage
         handler.disengagePercentage = disengage
         handler.tolerancePercentage = tolerance
+        // Disable floor/ceiling bounds for pure percentage testing
+        handler.engageFloor = 0
+        handler.engageCeiling = 0
+        handler.disengageFloor = 0
+        handler.disengageCeiling = 0
+        handler.toleranceFloor = 0
+        handler.toleranceCeiling = 0
         setupIdleStateWithZeroBaseline()
     }
 
@@ -808,6 +815,64 @@ final class ProgressorHandlerTests: XCTestCase {
         waitForMainQueue()
 
         XCTAssertTrue(handler.engaged, "Should engage at 3kg using fixed threshold, not 10kg (50% of 20)")
+    }
+
+    func testFixedDisengageThresholdUsedWhenToggleOff() {
+        // Setup with toggle OFF but target weight set
+        handler.enablePercentageThresholds = false
+        handler.targetWeight = 20.0
+        handler.disengagePercentage = 0.20  // Would be 4kg if percentage mode was on
+        setupIdleStateWithZeroBaseline()
+        handler.canEngage = true
+
+        let failedExpectation = expectation(description: "Grip failed")
+        handler.gripFailed
+            .sink { failedExpectation.fulfill() }
+            .store(in: &cancellables)
+
+        // Engage first
+        handler.processSample(5.0)
+        waitForMainQueue()
+        XCTAssertTrue(handler.engaged)
+
+        // At 2.0kg - above fixed threshold (1.0kg) but below percentage (4kg)
+        // Should still be engaged because fixed threshold is used
+        handler.processSample(2.0)
+        waitForMainQueue()
+        XCTAssertTrue(handler.engaged, "Should still be engaged at 2kg using fixed threshold (1kg), not percentage (4kg)")
+
+        // Below fixed threshold (1.0kg) - should disengage
+        handler.processSample(0.9)
+
+        wait(for: [failedExpectation], timeout: 1.0)
+        XCTAssertFalse(handler.engaged, "Should disengage below 1kg using fixed threshold")
+    }
+
+    func testFixedToleranceUsedWhenToggleOff() {
+        // Setup with toggle OFF but target weight set
+        handler.enablePercentageThresholds = false
+        handler.targetWeight = 20.0
+        handler.tolerancePercentage = 0.10  // Would be 2kg if percentage mode was on
+        handler.weightTolerance = 0.5  // Fixed tolerance
+        setupIdleStateWithZeroBaseline()
+        handler.canEngage = true
+
+        // Engage
+        handler.processSample(5.0)
+        waitForMainQueue()
+        XCTAssertTrue(handler.engaged)
+
+        // At 20.8kg - 0.8kg off target
+        // Above fixed tolerance (0.5kg) but below percentage (2kg)
+        // Should be OFF target because fixed tolerance is used
+        handler.processSample(20.8)
+        waitForMainQueue()
+        XCTAssertTrue(handler.isOffTarget, "Should be OFF target at 20.8kg using fixed tolerance (0.5kg), not percentage (2kg)")
+
+        // At 20.3kg - 0.3kg off target, within fixed tolerance
+        handler.processSample(20.3)
+        waitForMainQueue()
+        XCTAssertFalse(handler.isOffTarget, "Should be ON target at 20.3kg (within 0.5kg fixed tolerance)")
     }
 
     func testPercentageThresholdsUsedWhenToggleOn() {
@@ -1127,10 +1192,13 @@ final class ProgressorHandlerTests: XCTestCase {
     }
 
     func testPercentageModeWithZeroTarget() {
-        // Edge case: target = 0
+        // Edge case: target = 0 with pure percentage (no floor/ceiling)
         handler.enablePercentageThresholds = true
         handler.targetWeight = 0.0
         handler.engagePercentage = 0.50
+        // Disable floor/ceiling to test pure percentage behavior
+        handler.engageFloor = 0
+        handler.engageCeiling = 0
         setupIdleStateWithZeroBaseline()
         handler.canEngage = true
 
@@ -1140,5 +1208,308 @@ final class ProgressorHandlerTests: XCTestCase {
 
         // With 0 target, 50% = 0kg threshold, so 0.1 >= 0 should engage
         XCTAssertTrue(handler.engaged, "Should engage with any force when target is 0")
+    }
+
+    // MARK: - Floor/Ceiling Bounds Tests
+
+    /// Helper to set up handler with percentage thresholds and custom bounds
+    private func setupWithPercentageThresholdsAndBounds(
+        target: Float,
+        engage: Float = 0.50,
+        disengage: Float = 0.20,
+        tolerance: Float = 0.05,
+        engageFloor: Float = AppConstants.defaultEngageFloor,
+        engageCeiling: Float = AppConstants.defaultEngageCeiling,
+        disengageFloor: Float = AppConstants.defaultDisengageFloor,
+        disengageCeiling: Float = AppConstants.defaultDisengageCeiling,
+        toleranceFloor: Float = AppConstants.defaultToleranceFloor,
+        toleranceCeiling: Float = AppConstants.defaultToleranceCeiling
+    ) {
+        handler.enablePercentageThresholds = true
+        handler.targetWeight = target
+        handler.engagePercentage = engage
+        handler.disengagePercentage = disengage
+        handler.tolerancePercentage = tolerance
+        handler.engageFloor = engageFloor
+        handler.engageCeiling = engageCeiling
+        handler.disengageFloor = disengageFloor
+        handler.disengageCeiling = disengageCeiling
+        handler.toleranceFloor = toleranceFloor
+        handler.toleranceCeiling = toleranceCeiling
+        setupIdleStateWithZeroBaseline()
+    }
+
+    // MARK: Floor Clamping (Small Weights)
+
+    func testEngageFloorClampsSmallWeight() {
+        // Target 3kg, 50% = 1.5kg, but floor is 3kg
+        // Should use floor (3kg) instead of percentage (1.5kg)
+        setupWithPercentageThresholdsAndBounds(
+            target: 3.0,
+            engage: 0.50,
+            engageFloor: 3.0
+        )
+        handler.canEngage = true
+
+        // At 2.5kg - above percentage (1.5kg) but below floor (3kg)
+        handler.processSample(2.5)
+        waitForMainQueue()
+        XCTAssertFalse(handler.engaged, "Should NOT engage at 2.5kg when floor is 3kg")
+
+        // At 3.0kg - at floor
+        handler.processSample(3.0)
+        waitForMainQueue()
+        XCTAssertTrue(handler.engaged, "Should engage at floor (3kg)")
+    }
+
+    func testDisengageFloorClampsSmallWeight() {
+        // Target 5kg, 20% = 1kg, but floor is 2kg
+        // Should use floor (2kg) instead of percentage (1kg)
+        setupWithPercentageThresholdsAndBounds(
+            target: 5.0,
+            engage: 0.50,
+            disengage: 0.20,
+            engageFloor: 2.0,
+            disengageFloor: 2.0
+        )
+        handler.canEngage = true
+
+        let failedExpectation = expectation(description: "Grip failed")
+        handler.gripFailed
+            .sink { failedExpectation.fulfill() }
+            .store(in: &cancellables)
+
+        // Engage
+        handler.processSample(5.0)
+        waitForMainQueue()
+        XCTAssertTrue(handler.engaged)
+
+        // At 1.5kg - below percentage (1kg) but still at/above floor (2kg)? No, 1.5 < 2
+        // Should fail because 1.5 < floor (2kg)
+        handler.processSample(1.5)
+
+        wait(for: [failedExpectation], timeout: 1.0)
+        XCTAssertFalse(handler.engaged, "Should disengage at 1.5kg when floor is 2kg")
+    }
+
+    func testToleranceFloorClampsSmallWeight() {
+        // Target 5kg, 5% = 0.25kg, but floor is 1kg
+        // Should use floor (1kg) instead of percentage (0.25kg)
+        setupWithPercentageThresholdsAndBounds(
+            target: 5.0,
+            tolerance: 0.05,
+            engageFloor: 2.0,
+            toleranceFloor: 1.0
+        )
+        handler.canEngage = true
+
+        // Engage
+        handler.processSample(5.0)
+        waitForMainQueue()
+        XCTAssertTrue(handler.engaged)
+
+        // At 5.5kg - 0.5kg off, which is > percentage (0.25kg) but < floor (1kg)
+        handler.processSample(5.5)
+        waitForMainQueue()
+        XCTAssertFalse(handler.isOffTarget, "Should be ON target at 5.5kg when tolerance floor is 1kg")
+
+        // At 6.0kg - 1.0kg off, exactly at floor tolerance
+        handler.processSample(6.0)
+        waitForMainQueue()
+        XCTAssertTrue(handler.isOffTarget, "Should be OFF target at 6kg (1kg off, floor tolerance is 1kg)")
+    }
+
+    // MARK: Ceiling Clamping (Large Weights)
+
+    func testEngageCeilingClampsLargeWeight() {
+        // Target 100kg, 50% = 50kg, but ceiling is 20kg
+        // Should use ceiling (20kg) instead of percentage (50kg)
+        setupWithPercentageThresholdsAndBounds(
+            target: 100.0,
+            engage: 0.50,
+            engageCeiling: 20.0
+        )
+        handler.canEngage = true
+
+        // At 20kg - at ceiling
+        handler.processSample(20.0)
+        waitForMainQueue()
+        XCTAssertTrue(handler.engaged, "Should engage at ceiling (20kg) not percentage (50kg)")
+    }
+
+    func testDisengageCeilingClampsLargeWeight() {
+        // Target 100kg, 20% = 20kg, but ceiling is 5kg
+        // Should use ceiling (5kg) instead of percentage (20kg)
+        setupWithPercentageThresholdsAndBounds(
+            target: 100.0,
+            engage: 0.50,
+            disengage: 0.20,
+            engageCeiling: 20.0,
+            disengageCeiling: 5.0
+        )
+        handler.canEngage = true
+
+        let failedExpectation = expectation(description: "Grip failed")
+        handler.gripFailed
+            .sink { failedExpectation.fulfill() }
+            .store(in: &cancellables)
+
+        // Engage
+        handler.processSample(25.0)
+        waitForMainQueue()
+        XCTAssertTrue(handler.engaged)
+
+        // At 4.9kg - below ceiling (5kg)
+        handler.processSample(4.9)
+
+        wait(for: [failedExpectation], timeout: 1.0)
+        XCTAssertFalse(handler.engaged, "Should disengage below 5kg (ceiling) not 20kg (percentage)")
+    }
+
+    func testToleranceCeilingClampsLargeWeight() {
+        // Target 100kg, 5% = 5kg, but ceiling is 2kg
+        // Should use ceiling (2kg) instead of percentage (5kg)
+        setupWithPercentageThresholdsAndBounds(
+            target: 100.0,
+            tolerance: 0.05,
+            engageCeiling: 20.0,
+            toleranceCeiling: 2.0
+        )
+        handler.canEngage = true
+
+        // Engage
+        handler.processSample(100.0)
+        waitForMainQueue()
+        XCTAssertTrue(handler.engaged)
+
+        // At 102.5kg - 2.5kg off, which is < percentage (5kg) but > ceiling (2kg)
+        handler.processSample(102.5)
+        waitForMainQueue()
+        XCTAssertTrue(handler.isOffTarget, "Should be OFF target at 102.5kg when tolerance ceiling is 2kg")
+
+        // At 101.5kg - 1.5kg off, within ceiling tolerance
+        handler.processSample(101.5)
+        waitForMainQueue()
+        XCTAssertFalse(handler.isOffTarget, "Should be ON target at 101.5kg (1.5kg off, ceiling tolerance is 2kg)")
+    }
+
+    // MARK: Values Within Range (No Clamping)
+
+    func testNoClampingWhenWithinRange() {
+        // Target 20kg with default bounds
+        // 50% = 10kg (within 3-20 floor/ceiling)
+        // 20% = 4kg (within 2-5 floor/ceiling)
+        // 5% = 1kg (within 1-2 floor/ceiling)
+        setupWithPercentageThresholdsAndBounds(target: 20.0)
+        handler.canEngage = true
+
+        // Engage at 10kg (pure percentage, no clamping)
+        handler.processSample(9.9)
+        waitForMainQueue()
+        XCTAssertFalse(handler.engaged, "Should NOT engage at 9.9kg (below 10kg threshold)")
+
+        handler.processSample(10.0)
+        waitForMainQueue()
+        XCTAssertTrue(handler.engaged, "Should engage at exactly 10kg (50% of 20kg, no clamping)")
+    }
+
+    // MARK: Floor = 0 (Disabled)
+
+    func testFloorZeroDisablesFloorClamping() {
+        // Target 3kg, 50% = 1.5kg, floor = 0 (disabled)
+        // Should use pure percentage (1.5kg)
+        setupWithPercentageThresholdsAndBounds(
+            target: 3.0,
+            engage: 0.50,
+            engageFloor: 0.0  // Disabled
+        )
+        handler.canEngage = true
+
+        // At 1.5kg - exactly at percentage
+        handler.processSample(1.5)
+        waitForMainQueue()
+        XCTAssertTrue(handler.engaged, "Should engage at 1.5kg (50% of 3kg) when floor is disabled")
+    }
+
+    func testToleranceFloorZeroDisablesClamping() {
+        // Target 5kg, 5% = 0.25kg, floor = 0 (disabled)
+        // Should use pure percentage (0.25kg)
+        setupWithPercentageThresholdsAndBounds(
+            target: 5.0,
+            tolerance: 0.05,
+            engageFloor: 0.0,
+            toleranceFloor: 0.0  // Disabled
+        )
+        handler.canEngage = true
+
+        // Engage
+        handler.processSample(5.0)
+        waitForMainQueue()
+        XCTAssertTrue(handler.engaged)
+
+        // At 5.3kg - 0.3kg off, which is > percentage (0.25kg)
+        handler.processSample(5.3)
+        waitForMainQueue()
+        XCTAssertTrue(handler.isOffTarget, "Should be OFF target at 5.3kg when floor disabled (0.25kg tolerance)")
+
+        // At 5.2kg - 0.2kg off, which is < percentage (0.25kg)
+        handler.processSample(5.2)
+        waitForMainQueue()
+        XCTAssertFalse(handler.isOffTarget, "Should be ON target at 5.2kg when floor disabled (0.25kg tolerance)")
+    }
+
+    // MARK: Custom Bounds
+
+    func testCustomEngageBounds() {
+        // Custom bounds: floor=5, ceiling=15
+        setupWithPercentageThresholdsAndBounds(
+            target: 10.0,
+            engage: 0.50,  // Would be 5kg
+            engageFloor: 5.0,
+            engageCeiling: 15.0
+        )
+        handler.canEngage = true
+
+        // At exactly floor/percentage (5kg)
+        handler.processSample(5.0)
+        waitForMainQueue()
+        XCTAssertTrue(handler.engaged, "Should engage at 5kg (matches both floor and percentage)")
+    }
+
+    func testCustomToleranceBounds() {
+        // Custom bounds: floor=0.5, ceiling=1.5
+        setupWithPercentageThresholdsAndBounds(
+            target: 20.0,
+            tolerance: 0.05,  // 5% of 20 = 1kg (within 0.5-1.5)
+            engageFloor: 3.0,
+            toleranceFloor: 0.5,
+            toleranceCeiling: 1.5
+        )
+        handler.canEngage = true
+
+        // Engage
+        handler.processSample(20.0)
+        waitForMainQueue()
+        XCTAssertTrue(handler.engaged)
+
+        // At 20.9kg - 0.9kg off (within 1kg tolerance, no clamping)
+        handler.processSample(20.9)
+        waitForMainQueue()
+        XCTAssertFalse(handler.isOffTarget, "Should be ON target at 20.9kg (0.9kg < 1kg tolerance)")
+
+        // At 21.1kg - 1.1kg off (exceeds 1kg tolerance)
+        handler.processSample(21.1)
+        waitForMainQueue()
+        XCTAssertTrue(handler.isOffTarget, "Should be OFF target at 21.1kg (1.1kg > 1kg tolerance)")
+    }
+
+    func testDefaultBoundsValues() {
+        // Verify default bounds are set correctly
+        XCTAssertEqual(handler.engageFloor, AppConstants.defaultEngageFloor)
+        XCTAssertEqual(handler.engageCeiling, AppConstants.defaultEngageCeiling)
+        XCTAssertEqual(handler.disengageFloor, AppConstants.defaultDisengageFloor)
+        XCTAssertEqual(handler.disengageCeiling, AppConstants.defaultDisengageCeiling)
+        XCTAssertEqual(handler.toleranceFloor, AppConstants.defaultToleranceFloor)
+        XCTAssertEqual(handler.toleranceCeiling, AppConstants.defaultToleranceCeiling)
     }
 }

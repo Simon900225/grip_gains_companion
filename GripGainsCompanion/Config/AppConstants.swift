@@ -30,6 +30,16 @@ struct AppConstants {
     static let maxEngagePercentage: Float = 0.90          // 90% maximum for engage
     static let maxDisengagePercentage: Float = 0.50       // 50% maximum for disengage
 
+    // MARK: - Percentage Threshold Bounds (kg)
+    // Floor = minimum absolute value (0 = disabled, use pure percentage)
+    // Ceiling = maximum absolute value (0 = disabled, use pure percentage)
+    static let defaultEngageFloor: Float = 3.0
+    static let defaultEngageCeiling: Float = 0.0      // Disabled by default
+    static let defaultDisengageFloor: Float = 2.0
+    static let defaultDisengageCeiling: Float = 0.0   // Disabled by default
+    static let defaultToleranceFloor: Float = 1.0
+    static let defaultToleranceCeiling: Float = 0.0   // Disabled by default
+
     // MARK: - Web
     static let gripGainsURL = URL(string: "https://gripgains.ca/timer")!
 

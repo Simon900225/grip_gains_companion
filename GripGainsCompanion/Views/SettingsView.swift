@@ -1,5 +1,43 @@
 import SwiftUI
 
+// MARK: - Bounds Picker Row
+
+struct BoundsPickerRow: View {
+    let label: String
+    @Binding var value: Double
+    let options: [Double]  // In kg, includes 0 for "Off"
+    let useLbs: Bool
+
+    var body: some View {
+        HStack {
+            Text(label)
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .frame(width: 30, alignment: .leading)
+
+            Picker("", selection: $value) {
+                Text("Off").tag(0.0)
+                ForEach(options.filter { $0 > 0 }, id: \.self) { option in
+                    let displayValue = useLbs ? option * Double(AppConstants.kgToLbs) : option
+                    let unit = useLbs ? "lbs" : "kg"
+                    Text(String(format: "%.1f %@", displayValue, unit)).tag(option)
+                }
+            }
+            .pickerStyle(.wheel)
+            .frame(height: 80)
+
+            Button {
+                value = 0
+            } label: {
+                Image(systemName: value == 0 ? "circle" : "xmark.circle.fill")
+                    .foregroundColor(value == 0 ? .secondary : .red)
+            }
+            .buttonStyle(.plain)
+            .disabled(value == 0)
+        }
+    }
+}
+
 enum ForceBarTheme: String, CaseIterable {
     case system
     case light
@@ -56,6 +94,23 @@ struct SettingsView: View {
     @AppStorage("engagePercentage") private var engagePercentage: Double = Double(AppConstants.defaultEngagePercentage)
     @AppStorage("disengagePercentage") private var disengagePercentage: Double = Double(AppConstants.defaultDisengagePercentage)
     @AppStorage("tolerancePercentage") private var tolerancePercentage: Double = Double(AppConstants.defaultTolerancePercentage)
+
+    // Floor/ceiling bounds for percentage thresholds (stored in kg)
+    @AppStorage("engageFloor") private var engageFloor: Double = Double(AppConstants.defaultEngageFloor)
+    @AppStorage("engageCeiling") private var engageCeiling: Double = Double(AppConstants.defaultEngageCeiling)
+    @AppStorage("disengageFloor") private var disengageFloor: Double = Double(AppConstants.defaultDisengageFloor)
+    @AppStorage("disengageCeiling") private var disengageCeiling: Double = Double(AppConstants.defaultDisengageCeiling)
+    @AppStorage("toleranceFloor") private var toleranceFloor: Double = Double(AppConstants.defaultToleranceFloor)
+    @AppStorage("toleranceCeiling") private var toleranceCeiling: Double = Double(AppConstants.defaultToleranceCeiling)
+
+    // Options for floor/ceiling pickers (in kg)
+    private let engageFloorOptions: [Double] = Array(stride(from: 0.0, through: 20.0, by: 0.5))
+    private let engageCeilingOptions: [Double] = Array(stride(from: 0.0, through: 100.0, by: 1.0))
+    private let disengageFloorOptions: [Double] = Array(stride(from: 0.0, through: 10.0, by: 0.5))
+    private let disengageCeilingOptions: [Double] = Array(stride(from: 0.0, through: 50.0, by: 1.0))
+    private let toleranceFloorOptions: [Double] = Array(stride(from: 0.0, through: 5.0, by: 0.1))
+    private let toleranceCeilingOptions: [Double] = Array(stride(from: 0.0, through: 10.0, by: 0.1))
+
     @State private var manualTargetText: String = "20.00"
     @FocusState private var isTextFieldFocused: Bool
 
@@ -194,6 +249,16 @@ struct SettingsView: View {
                 // Grip Detection section (only shown when device is connected)
                 if isDeviceConnected {
                     Section("Grip Detection") {
+                        Button {
+                            onRecalibrate()
+                            dismiss()
+                        } label: {
+                            HStack {
+                                Image(systemName: "arrow.triangle.2.circlepath")
+                                Text("Recalibrate Tare")
+                            }
+                        }
+
                         Toggle("Tare on Startup", isOn: $enableCalibration)
                         Text("Zeros the scale when Tindeq connects to detect grip and fail states. Does not affect hardware tare or displayed force.")
                             .font(.caption)
@@ -207,57 +272,94 @@ struct SettingsView: View {
                         }
 
                         if enablePercentageThresholds {
-                            // Percentage-based thresholds
-                            HStack {
-                                Text("Engage")
-                                Spacer()
-                                Text(formatPercentageThreshold(engagePercentage, label: "engage"))
-                                    .foregroundColor(.secondary)
-                                Stepper("",
-                                    value: $engagePercentage,
-                                    in: 0.10...0.90,
-                                    step: 0.05
-                                )
-                                .labelsHidden()
-                            }
-                            .onChange(of: engagePercentage) { _, newValue in
-                                // Ensure disengage stays below engage
-                                if disengagePercentage >= newValue {
-                                    disengagePercentage = max(0.05, newValue - 0.10)
+                            // Engage percentage with bounds
+                            VStack(alignment: .leading, spacing: 8) {
+                                HStack {
+                                    Text("Engage")
+                                    Spacer()
+                                    Text(formatPercentageThreshold(engagePercentage, label: "engage"))
+                                        .foregroundColor(.secondary)
+                                    Stepper("", value: $engagePercentage, in: 0.10...0.90, step: 0.05)
+                                        .labelsHidden()
                                 }
+                                .onChange(of: engagePercentage) { _, newValue in
+                                    if disengagePercentage >= newValue {
+                                        disengagePercentage = max(0.05, newValue - 0.10)
+                                    }
+                                }
+
+                                BoundsPickerRow(
+                                    label: "Min",
+                                    value: $engageFloor,
+                                    options: engageFloorOptions,
+                                    useLbs: useLbs
+                                )
+                                BoundsPickerRow(
+                                    label: "Max",
+                                    value: $engageCeiling,
+                                    options: engageCeilingOptions,
+                                    useLbs: useLbs
+                                )
                             }
 
-                            HStack {
-                                Text("Disengage")
-                                Spacer()
-                                Text(formatPercentageThreshold(disengagePercentage, label: "disengage"))
-                                    .foregroundColor(.secondary)
-                                Stepper("",
-                                    value: $disengagePercentage,
-                                    in: 0.05...0.50,
-                                    step: 0.05
-                                )
-                                .labelsHidden()
-                            }
-                            .onChange(of: disengagePercentage) { _, newValue in
-                                // Ensure disengage stays below engage
-                                if newValue >= engagePercentage {
-                                    disengagePercentage = max(0.05, engagePercentage - 0.10)
+                            // Disengage percentage with bounds
+                            VStack(alignment: .leading, spacing: 8) {
+                                HStack {
+                                    Text("Disengage")
+                                    Spacer()
+                                    Text(formatPercentageThreshold(disengagePercentage, label: "disengage"))
+                                        .foregroundColor(.secondary)
+                                    Stepper("", value: $disengagePercentage, in: 0.05...0.50, step: 0.05)
+                                        .labelsHidden()
                                 }
+                                .onChange(of: disengagePercentage) { _, newValue in
+                                    if newValue >= engagePercentage {
+                                        disengagePercentage = max(0.05, engagePercentage - 0.10)
+                                    }
+                                }
+
+                                BoundsPickerRow(
+                                    label: "Min",
+                                    value: $disengageFloor,
+                                    options: disengageFloorOptions,
+                                    useLbs: useLbs
+                                )
+                                BoundsPickerRow(
+                                    label: "Max",
+                                    value: $disengageCeiling,
+                                    options: disengageCeilingOptions,
+                                    useLbs: useLbs
+                                )
                             }
 
-                            HStack {
-                                Text("Tolerance")
-                                Spacer()
-                                Text(formatPercentageThreshold(tolerancePercentage, label: "tolerance"))
-                                    .foregroundColor(.secondary)
-                                Stepper("",
-                                    value: $tolerancePercentage,
-                                    in: 0.01...0.20,
-                                    step: 0.01
+                            // Tolerance percentage with bounds
+                            VStack(alignment: .leading, spacing: 8) {
+                                HStack {
+                                    Text("Tolerance")
+                                    Spacer()
+                                    Text(formatPercentageThreshold(tolerancePercentage, label: "tolerance"))
+                                        .foregroundColor(.secondary)
+                                    Stepper("", value: $tolerancePercentage, in: 0.01...0.20, step: 0.01)
+                                        .labelsHidden()
+                                }
+
+                                BoundsPickerRow(
+                                    label: "Min",
+                                    value: $toleranceFloor,
+                                    options: toleranceFloorOptions,
+                                    useLbs: useLbs
                                 )
-                                .labelsHidden()
+                                BoundsPickerRow(
+                                    label: "Max",
+                                    value: $toleranceCeiling,
+                                    options: toleranceCeilingOptions,
+                                    useLbs: useLbs
+                                )
                             }
+
+                            Text("Min/Max bound the calculated threshold. Set to Off to disable.")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
                         } else {
                             // Fixed kg thresholds (original behavior)
                             HStack {
@@ -309,16 +411,6 @@ struct SettingsView: View {
                                     .foregroundColor(.secondary)
                                 Stepper("", value: $weightTolerance, in: 0.1...5.0, step: 0.1)
                                     .labelsHidden()
-                            }
-                        }
-
-                        Button {
-                            onRecalibrate()
-                            dismiss()
-                        } label: {
-                            HStack {
-                                Image(systemName: "arrow.triangle.2.circlepath")
-                                Text("Recalibrate Tare")
                             }
                         }
                     }
@@ -488,19 +580,47 @@ struct SettingsView: View {
         }
     }
 
-    /// Format percentage threshold with calculated kg value
+    /// Format percentage threshold with calculated kg value (applying floor/ceiling bounds)
     private func formatPercentageThreshold(_ percentage: Double, label: String) -> String {
         let percentText = "\(Int(percentage * 100))%"
         if let target = effectiveTargetWeight {
-            let kgValue = Double(target) * percentage
-            let displayValue = useLbs ? kgValue * Double(AppConstants.kgToLbs) : kgValue
+            let rawKg = Double(target) * percentage
+
+            // Apply floor/ceiling bounds (0 = disabled)
+            let clampedKg: Double
+            switch label {
+            case "engage":
+                let floored = engageFloor > 0 ? max(rawKg, engageFloor) : rawKg
+                clampedKg = engageCeiling > 0 ? min(floored, engageCeiling) : floored
+            case "disengage":
+                let floored = disengageFloor > 0 ? max(rawKg, disengageFloor) : rawKg
+                clampedKg = disengageCeiling > 0 ? min(floored, disengageCeiling) : floored
+            case "tolerance":
+                let floored = toleranceFloor > 0 ? max(rawKg, toleranceFloor) : rawKg
+                clampedKg = toleranceCeiling > 0 ? min(floored, toleranceCeiling) : floored
+            default:
+                clampedKg = rawKg
+            }
+
+            let displayValue = useLbs ? clampedKg * Double(AppConstants.kgToLbs) : clampedKg
             let unit = useLbs ? "lbs" : "kg"
+
             if label == "tolerance" {
                 return "\(percentText) (±\(String(format: "%.1f", displayValue)) \(unit))"
             }
             return "\(percentText) (\(String(format: "%.1f", displayValue)) \(unit))"
         }
         return percentText
+    }
+
+    /// Format floor/ceiling value for display (0 = Off for both)
+    private func formatBoundsValue(_ valueInKg: Double, isFloor: Bool = false, isCeiling: Bool = false) -> String {
+        if valueInKg == 0 {
+            return "Off"
+        }
+        let displayValue = useLbs ? valueInKg * Double(AppConstants.kgToLbs) : valueInKg
+        let unit = useLbs ? "lbs" : "kg"
+        return String(format: "%.1f %@", displayValue, unit)
     }
 }
 
