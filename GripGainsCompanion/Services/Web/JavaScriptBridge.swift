@@ -2,6 +2,26 @@ import Foundation
 
 /// JavaScript code snippets for interacting with the gripgains.ca web UI
 enum JavaScriptBridge {
+    /// Close the weight picker overlay if it's open on page load
+    /// This handles the case where Vue restores the overlay state after a page refresh
+    static let closePickerOnLoadScript = """
+        (function() {
+            function closePickerIfOpen() {
+                const overlay = document.querySelector('.weight-picker-overlay');
+                if (overlay) {
+                    const closeBtn = overlay.querySelector('.close-button');
+                    if (closeBtn) closeBtn.click();
+                }
+            }
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', closePickerIfOpen);
+            } else {
+                closePickerIfOpen();
+            }
+        })();
+    """
+
     /// Patch Date.now() and timer functions to account for background time
     /// Must be injected at document start before any other scripts run
     static let backgroundTimeOffsetScript = """
@@ -366,14 +386,18 @@ enum JavaScriptBridge {
                     }
                 `;
 
-                // Close picker by clicking the X button or clicking outside
-                const closeBtn = document.querySelector('.modal-close, [class*="close"], button[aria-label="Close"]');
-                if (closeBtn) {
-                    closeBtn.click();
-                } else {
-                    // Try clicking button again or body to close
-                    button.click();
+                // Close picker by clicking the close button inside the overlay
+                const overlay = document.querySelector('.weight-picker-overlay');
+                if (overlay) {
+                    const closeBtn = overlay.querySelector('.close-button');
+                    if (closeBtn) {
+                        closeBtn.click();
+                    } else {
+                        // Fallback: try clicking button again to close
+                        button.click();
+                    }
                 }
+                // If no overlay, do nothing - it's already closed
 
                 // Remove the hiding style after overlay closes
                 setTimeout(() => style.remove(), 150);

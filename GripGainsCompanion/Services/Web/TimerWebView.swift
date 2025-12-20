@@ -37,6 +37,14 @@ struct TimerWebView: UIViewRepresentable {
         )
         contentController.addUserScript(backgroundTimeScript)
 
+        // Inject script to close weight picker if it's open on page load
+        let closePickerScript = WKUserScript(
+            source: JavaScriptBridge.closePickerOnLoadScript,
+            injectionTime: .atDocumentEnd,
+            forMainFrameOnly: true
+        )
+        contentController.addUserScript(closePickerScript)
+
         // Inject observer script on document end
         let observerScript = WKUserScript(
             source: JavaScriptBridge.observerScript,
