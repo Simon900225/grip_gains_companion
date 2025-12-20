@@ -771,4 +771,374 @@ final class ProgressorHandlerTests: XCTestCase {
         XCTAssertEqual(handler.offTargetDirection!, 1.5, accuracy: 0.01,
                        "Direction should be +1.5 (raw 16.5 - target 15.0)")
     }
+
+    // MARK: - Percentage-Based Threshold Tests
+
+    /// Helper to set up handler with percentage thresholds enabled
+    private func setupWithPercentageThresholds(
+        target: Float,
+        engage: Float = 0.50,
+        disengage: Float = 0.20,
+        tolerance: Float = 0.05
+    ) {
+        handler.enablePercentageThresholds = true
+        handler.targetWeight = target
+        handler.engagePercentage = engage
+        handler.disengagePercentage = disengage
+        handler.tolerancePercentage = tolerance
+        setupIdleStateWithZeroBaseline()
+    }
+
+    // MARK: Toggle Behavior
+
+    func testPercentageThresholdsDisabledByDefault() {
+        XCTAssertFalse(handler.enablePercentageThresholds, "Percentage thresholds should be disabled by default")
+    }
+
+    func testFixedThresholdsUsedWhenToggleOff() {
+        // Setup with toggle OFF but target weight set
+        handler.enablePercentageThresholds = false
+        handler.targetWeight = 20.0
+        handler.engagePercentage = 0.50  // Would be 10kg if percentage mode was on
+        setupIdleStateWithZeroBaseline()
+        handler.canEngage = true
+
+        // With fixed thresholds (default 3.0kg), should engage at 3kg
+        handler.processSample(3.0)
+        waitForMainQueue()
+
+        XCTAssertTrue(handler.engaged, "Should engage at 3kg using fixed threshold, not 10kg (50% of 20)")
+    }
+
+    func testPercentageThresholdsUsedWhenToggleOn() {
+        // Setup with toggle ON and target weight set
+        setupWithPercentageThresholds(target: 20.0, engage: 0.50)
+        handler.canEngage = true
+
+        // With percentage thresholds (50% of 20 = 10kg), should NOT engage at 3kg
+        handler.processSample(3.0)
+        waitForMainQueue()
+
+        XCTAssertFalse(handler.engaged, "Should NOT engage at 3kg when percentage threshold is 10kg (50% of 20)")
+
+        // Should engage at 10kg
+        handler.processSample(10.0)
+        waitForMainQueue()
+
+        XCTAssertTrue(handler.engaged, "Should engage at 10kg (50% of 20kg target)")
+    }
+
+    // MARK: Dynamic Threshold Calculation
+
+    func testEngageThresholdCalculatedFromPercentage() {
+        // targetWeight = 20kg, engagePercentage = 0.50
+        // Expected: engage at taredWeight >= 10kg
+        setupWithPercentageThresholds(target: 20.0, engage: 0.50)
+        handler.canEngage = true
+
+        // Below threshold
+        handler.processSample(9.9)
+        waitForMainQueue()
+        XCTAssertFalse(handler.engaged, "Should NOT engage at 9.9kg (below 10kg threshold)")
+
+        // At threshold
+        handler.processSample(10.0)
+        waitForMainQueue()
+        XCTAssertTrue(handler.engaged, "Should engage at 10kg (50% of 20kg)")
+    }
+
+    func testDisengageThresholdCalculatedFromPercentage() {
+        // targetWeight = 20kg, disengagePercentage = 0.20
+        // Expected: fail when taredWeight < 4kg
+        setupWithPercentageThresholds(target: 20.0, engage: 0.50, disengage: 0.20)
+        handler.canEngage = true
+
+        // Listen for grip failed event
+        let failedExpectation = expectation(description: "Grip failed")
+        handler.gripFailed
+            .sink { failedExpectation.fulfill() }
+            .store(in: &cancellables)
+
+        // Engage
+        handler.processSample(10.0)
+        waitForMainQueue()
+        XCTAssertTrue(handler.engaged)
+
+        // At 4kg threshold - should NOT fail (uses <, not <=)
+        handler.processSample(4.0)
+        waitForMainQueue()
+        XCTAssertTrue(handler.engaged, "Should still be engaged at exactly 4kg (20% threshold)")
+
+        // Below 4kg - should fail
+        handler.processSample(3.9)
+
+        wait(for: [failedExpectation], timeout: 1.0)
+        XCTAssertFalse(handler.engaged, "Should disengage below 4kg (20% of 20kg)")
+    }
+
+    func testToleranceCalculatedFromPercentage() {
+        // targetWeight = 20kg, tolerancePercentage = 0.05
+        // Expected: off-target when |rawWeight - target| >= 1kg
+        setupWithPercentageThresholds(target: 20.0, tolerance: 0.05)
+        handler.canEngage = true
+
+        // Engage
+        handler.processSample(12.0)
+        waitForMainQueue()
+        XCTAssertTrue(handler.engaged)
+
+        // On target at 20.0
+        handler.processSample(20.0)
+        waitForMainQueue()
+        XCTAssertFalse(handler.isOffTarget, "Should be on target at exactly 20kg")
+
+        // Just within tolerance at 20.9
+        handler.processSample(20.9)
+        waitForMainQueue()
+        XCTAssertFalse(handler.isOffTarget, "Should be on target at 20.9kg (within 1kg tolerance)")
+
+        // At tolerance boundary at 21.0
+        handler.processSample(21.0)
+        waitForMainQueue()
+        XCTAssertTrue(handler.isOffTarget, "Should be off target at 21kg (exactly at 5% tolerance boundary)")
+    }
+
+    // MARK: Scaling Across Weight Ranges
+
+    func testThresholdsScaleWithSmallTarget() {
+        // targetWeight = 5kg → engage 2.5kg, fail < 1kg, tolerance ±0.25kg
+        setupWithPercentageThresholds(target: 5.0, engage: 0.50, disengage: 0.20, tolerance: 0.05)
+        handler.canEngage = true
+
+        // Should engage at 2.5kg (50% of 5)
+        handler.processSample(2.5)
+        waitForMainQueue()
+        XCTAssertTrue(handler.engaged, "Should engage at 2.5kg for 5kg target")
+    }
+
+    func testThresholdsScaleWithMediumTarget() {
+        // targetWeight = 15kg → engage 7.5kg, fail < 3kg, tolerance ±0.75kg
+        setupWithPercentageThresholds(target: 15.0, engage: 0.50, disengage: 0.20, tolerance: 0.05)
+        handler.canEngage = true
+
+        // Should NOT engage at 7.4kg
+        handler.processSample(7.4)
+        waitForMainQueue()
+        XCTAssertFalse(handler.engaged, "Should NOT engage at 7.4kg for 15kg target")
+
+        // Should engage at 7.5kg
+        handler.processSample(7.5)
+        waitForMainQueue()
+        XCTAssertTrue(handler.engaged, "Should engage at 7.5kg (50% of 15kg)")
+    }
+
+    func testThresholdsScaleWithLargeTarget() {
+        // targetWeight = 30kg → engage 15kg, fail < 6kg, tolerance ±1.5kg
+        setupWithPercentageThresholds(target: 30.0, engage: 0.50, disengage: 0.20, tolerance: 0.05)
+        handler.canEngage = true
+
+        // Should engage at 15kg
+        handler.processSample(15.0)
+        waitForMainQueue()
+        XCTAssertTrue(handler.engaged, "Should engage at 15kg (50% of 30kg)")
+    }
+
+    // MARK: State Transitions with Percentage Thresholds
+
+    func testEngageAtExactPercentageThreshold() {
+        // taredWeight == targetWeight * engagePercentage → should engage
+        setupWithPercentageThresholds(target: 20.0, engage: 0.50)
+        handler.canEngage = true
+
+        handler.processSample(10.0)  // Exactly 50% of 20
+        waitForMainQueue()
+
+        XCTAssertTrue(handler.engaged, "Should engage at exactly the percentage threshold")
+    }
+
+    func testNoEngageBelowPercentageThreshold() {
+        // taredWeight < targetWeight * engagePercentage → should stay idle
+        setupWithPercentageThresholds(target: 20.0, engage: 0.50)
+        handler.canEngage = true
+
+        handler.processSample(9.99)  // Just below 50% of 20
+        waitForMainQueue()
+
+        XCTAssertFalse(handler.engaged, "Should NOT engage below percentage threshold")
+        if case .idle = handler.state {
+            // Expected
+        } else {
+            XCTFail("Should be in idle state")
+        }
+    }
+
+    func testDisengageAtExactPercentageThreshold() {
+        // taredWeight == targetWeight * disengagePercentage → should NOT disengage (uses <)
+        setupWithPercentageThresholds(target: 20.0, engage: 0.50, disengage: 0.20)
+        handler.canEngage = true
+
+        // Engage first
+        handler.processSample(10.0)
+        waitForMainQueue()
+        XCTAssertTrue(handler.engaged)
+
+        // At exactly disengage threshold (4kg = 20% of 20)
+        handler.processSample(4.0)
+        waitForMainQueue()
+
+        XCTAssertTrue(handler.engaged, "Should still be engaged at exactly the disengage threshold (uses < not <=)")
+    }
+
+    func testDisengageBelowPercentageThreshold() {
+        // taredWeight < targetWeight * disengagePercentage → should disengage
+        setupWithPercentageThresholds(target: 20.0, engage: 0.50, disengage: 0.20)
+        handler.canEngage = true
+
+        let failedExpectation = expectation(description: "Grip failed")
+        handler.gripFailed
+            .sink { failedExpectation.fulfill() }
+            .store(in: &cancellables)
+
+        // Engage first
+        handler.processSample(10.0)
+        waitForMainQueue()
+        XCTAssertTrue(handler.engaged)
+
+        // Below disengage threshold
+        handler.processSample(3.99)
+
+        wait(for: [failedExpectation], timeout: 1.0)
+        XCTAssertFalse(handler.engaged, "Should disengage below percentage threshold")
+    }
+
+    // MARK: Off-Target with Percentage Tolerance
+
+    func testOnTargetWithinPercentageTolerance() {
+        // |rawWeight - target| < target * tolerancePercentage → not off-target
+        setupWithPercentageThresholds(target: 20.0, tolerance: 0.05)  // 5% = 1kg tolerance
+        handler.canEngage = true
+
+        handler.processSample(12.0)
+        waitForMainQueue()
+        XCTAssertTrue(handler.engaged)
+
+        // Within tolerance
+        handler.processSample(20.5)  // 0.5kg off, tolerance is 1kg
+        waitForMainQueue()
+
+        XCTAssertFalse(handler.isOffTarget, "Should be on target when within percentage tolerance")
+    }
+
+    func testOffTargetOutsidePercentageTolerance() {
+        // |rawWeight - target| >= target * tolerancePercentage → off-target
+        setupWithPercentageThresholds(target: 20.0, tolerance: 0.05)  // 5% = 1kg tolerance
+        handler.canEngage = true
+
+        handler.processSample(12.0)
+        waitForMainQueue()
+        XCTAssertTrue(handler.engaged)
+
+        // Outside tolerance
+        handler.processSample(21.5)  // 1.5kg off, tolerance is 1kg
+        waitForMainQueue()
+
+        XCTAssertTrue(handler.isOffTarget, "Should be off target when outside percentage tolerance")
+    }
+
+    func testOffTargetDirectionWithPercentageTolerance() {
+        // Verify direction is positive (too heavy) or negative (too light)
+        setupWithPercentageThresholds(target: 20.0, tolerance: 0.05)
+        handler.canEngage = true
+
+        handler.processSample(12.0)
+        waitForMainQueue()
+
+        // Too heavy
+        handler.processSample(22.0)
+        waitForMainQueue()
+        XCTAssertTrue(handler.isOffTarget)
+        XCTAssertEqual(handler.offTargetDirection!, 2.0, accuracy: 0.01, "Direction should be positive for too heavy")
+
+        // Too light
+        handler.processSample(18.0)
+        waitForMainQueue()
+        XCTAssertTrue(handler.isOffTarget)
+        XCTAssertEqual(handler.offTargetDirection!, -2.0, accuracy: 0.01, "Direction should be negative for too light")
+    }
+
+    // MARK: Boundary Conditions
+
+    func testDisengagePercentageMustBeLessThanEngage() {
+        // This is a settings-level validation, but we test that the handler
+        // works correctly even if disengage is set close to engage
+        setupWithPercentageThresholds(target: 20.0, engage: 0.50, disengage: 0.45)
+        handler.canEngage = true
+
+        // Engage at 10kg (50% of 20)
+        handler.processSample(10.0)
+        waitForMainQueue()
+        XCTAssertTrue(handler.engaged)
+
+        // At 9kg (45% = disengage threshold), should still be engaged
+        handler.processSample(9.0)
+        waitForMainQueue()
+        XCTAssertTrue(handler.engaged, "Should still be engaged at exactly disengage threshold")
+    }
+
+    // MARK: Target Weight Changes
+
+    func testThresholdsUpdateWhenTargetChanges() {
+        // Start with 20kg target
+        setupWithPercentageThresholds(target: 20.0, engage: 0.50)
+        handler.canEngage = true
+
+        // Should NOT engage at 5kg (50% of 20 = 10kg threshold)
+        handler.processSample(5.0)
+        waitForMainQueue()
+        XCTAssertFalse(handler.engaged, "Should NOT engage at 5kg with 20kg target")
+
+        // Reset to idle
+        handler.reset()
+        setupIdleStateWithZeroBaseline()
+        handler.canEngage = true
+
+        // Change target to 10kg
+        handler.targetWeight = 10.0
+
+        // Now should engage at 5kg (50% of 10 = 5kg threshold)
+        handler.processSample(5.0)
+        waitForMainQueue()
+        XCTAssertTrue(handler.engaged, "Should engage at 5kg with 10kg target")
+    }
+
+    func testFallbackToFixedWhenNoTargetSet() {
+        // Enable percentage mode but don't set target
+        handler.enablePercentageThresholds = true
+        handler.targetWeight = nil
+        handler.engagePercentage = 0.50
+        setupIdleStateWithZeroBaseline()
+        handler.canEngage = true
+
+        // Should fall back to fixed threshold (3.0kg default)
+        handler.processSample(3.0)
+        waitForMainQueue()
+
+        XCTAssertTrue(handler.engaged, "Should use fixed 3kg threshold when no target is set")
+    }
+
+    func testPercentageModeWithZeroTarget() {
+        // Edge case: target = 0
+        handler.enablePercentageThresholds = true
+        handler.targetWeight = 0.0
+        handler.engagePercentage = 0.50
+        setupIdleStateWithZeroBaseline()
+        handler.canEngage = true
+
+        // 50% of 0 = 0, so should engage at any positive force
+        handler.processSample(0.1)
+        waitForMainQueue()
+
+        // With 0 target, 50% = 0kg threshold, so 0.1 >= 0 should engage
+        XCTAssertTrue(handler.engaged, "Should engage with any force when target is 0")
+    }
 }

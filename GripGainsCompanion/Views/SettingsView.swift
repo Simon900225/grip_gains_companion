@@ -52,11 +52,23 @@ struct SettingsView: View {
     @AppStorage("autoSelectFromManual") private var autoSelectFromManual = false
     @AppStorage("engageThreshold") private var engageThreshold: Double = 3.0  // stored in kg
     @AppStorage("failThreshold") private var failThreshold: Double = 1.0      // stored in kg
+    @AppStorage("enablePercentageThresholds") private var enablePercentageThresholds = false
+    @AppStorage("engagePercentage") private var engagePercentage: Double = Double(AppConstants.defaultEngagePercentage)
+    @AppStorage("disengagePercentage") private var disengagePercentage: Double = Double(AppConstants.defaultDisengagePercentage)
+    @AppStorage("tolerancePercentage") private var tolerancePercentage: Double = Double(AppConstants.defaultTolerancePercentage)
     @State private var manualTargetText: String = "20.00"
     @FocusState private var isTextFieldFocused: Bool
 
     // Decimal options (0.05 increments)
     private let decimalOptions = Array(stride(from: 0, through: 95, by: 5))
+
+    /// Current effective target weight for percentage calculations (uses manual or scraped based on settings)
+    private var effectiveTargetWeight: Float? {
+        if useManualTarget {
+            return Float(manualTargetWeight)
+        }
+        return scrapedTargetWeight
+    }
 
     var body: some View {
         NavigationStack {
@@ -152,15 +164,6 @@ struct SettingsView: View {
                         .onChange(of: targetWholeNumber) { _, _ in syncTargetWeight() }
                         .onChange(of: targetDecimal) { _, _ in syncTargetWeight() }
                     }
-
-                    HStack {
-                        Text("Tolerance")
-                        Spacer()
-                        Text("±\(String(format: "%.1f", weightTolerance)) \(useLbs ? "lbs" : "kg")")
-                            .foregroundColor(.secondary)
-                        Stepper("", value: $weightTolerance, in: 0.1...5.0, step: 0.1)
-                            .labelsHidden()
-                    }
                     }  // if enableTargetWeight
                     }  // Section
                 }
@@ -196,46 +199,117 @@ struct SettingsView: View {
                             .font(.caption)
                             .foregroundColor(.secondary)
 
-                        HStack {
-                            Text("Engage Threshold")
-                            Spacer()
-                            Text(formatThreshold(engageThreshold))
+                        Toggle("Use Percentage Thresholds", isOn: $enablePercentageThresholds)
+                        if enablePercentageThresholds {
+                            Text("Thresholds scale with target weight. Requires target weight to be set.")
+                                .font(.caption)
                                 .foregroundColor(.secondary)
-                            Stepper("",
-                                value: Binding(
-                                    get: { useLbs ? engageThreshold * Double(AppConstants.kgToLbs) : engageThreshold },
-                                    set: { newValue in
-                                        engageThreshold = useLbs ? newValue / Double(AppConstants.kgToLbs) : newValue
-                                        // Ensure fail threshold stays below engage threshold
-                                        if failThreshold >= engageThreshold {
-                                            failThreshold = max(Double(AppConstants.minGripThreshold), engageThreshold - 0.5)
-                                        }
-                                    }
-                                ),
-                                in: useLbs ? 1.0...22.0 : 0.5...Double(AppConstants.maxEngageThreshold),
-                                step: useLbs ? 1.0 : 0.5
-                            )
-                            .labelsHidden()
                         }
 
-                        HStack {
-                            Text("Fail Threshold")
-                            Spacer()
-                            Text(formatThreshold(failThreshold))
-                                .foregroundColor(.secondary)
-                            Stepper("",
-                                value: Binding(
-                                    get: { useLbs ? failThreshold * Double(AppConstants.kgToLbs) : failThreshold },
-                                    set: { newValue in
-                                        let newKg = useLbs ? newValue / Double(AppConstants.kgToLbs) : newValue
-                                        // Clamp to be less than engage threshold
-                                        failThreshold = min(newKg, engageThreshold - 0.5)
-                                    }
-                                ),
-                                in: useLbs ? 1.0...11.0 : 0.5...Double(AppConstants.maxFailThreshold),
-                                step: useLbs ? 1.0 : 0.5
-                            )
-                            .labelsHidden()
+                        if enablePercentageThresholds {
+                            // Percentage-based thresholds
+                            HStack {
+                                Text("Engage")
+                                Spacer()
+                                Text(formatPercentageThreshold(engagePercentage, label: "engage"))
+                                    .foregroundColor(.secondary)
+                                Stepper("",
+                                    value: $engagePercentage,
+                                    in: 0.10...0.90,
+                                    step: 0.05
+                                )
+                                .labelsHidden()
+                            }
+                            .onChange(of: engagePercentage) { _, newValue in
+                                // Ensure disengage stays below engage
+                                if disengagePercentage >= newValue {
+                                    disengagePercentage = max(0.05, newValue - 0.10)
+                                }
+                            }
+
+                            HStack {
+                                Text("Disengage")
+                                Spacer()
+                                Text(formatPercentageThreshold(disengagePercentage, label: "disengage"))
+                                    .foregroundColor(.secondary)
+                                Stepper("",
+                                    value: $disengagePercentage,
+                                    in: 0.05...0.50,
+                                    step: 0.05
+                                )
+                                .labelsHidden()
+                            }
+                            .onChange(of: disengagePercentage) { _, newValue in
+                                // Ensure disengage stays below engage
+                                if newValue >= engagePercentage {
+                                    disengagePercentage = max(0.05, engagePercentage - 0.10)
+                                }
+                            }
+
+                            HStack {
+                                Text("Tolerance")
+                                Spacer()
+                                Text(formatPercentageThreshold(tolerancePercentage, label: "tolerance"))
+                                    .foregroundColor(.secondary)
+                                Stepper("",
+                                    value: $tolerancePercentage,
+                                    in: 0.01...0.20,
+                                    step: 0.01
+                                )
+                                .labelsHidden()
+                            }
+                        } else {
+                            // Fixed kg thresholds (original behavior)
+                            HStack {
+                                Text("Engage Threshold")
+                                Spacer()
+                                Text(formatThreshold(engageThreshold))
+                                    .foregroundColor(.secondary)
+                                Stepper("",
+                                    value: Binding(
+                                        get: { useLbs ? engageThreshold * Double(AppConstants.kgToLbs) : engageThreshold },
+                                        set: { newValue in
+                                            engageThreshold = useLbs ? newValue / Double(AppConstants.kgToLbs) : newValue
+                                            // Ensure fail threshold stays below engage threshold
+                                            if failThreshold >= engageThreshold {
+                                                failThreshold = max(Double(AppConstants.minGripThreshold), engageThreshold - 0.5)
+                                            }
+                                        }
+                                    ),
+                                    in: useLbs ? 1.0...22.0 : 0.5...Double(AppConstants.maxEngageThreshold),
+                                    step: useLbs ? 1.0 : 0.5
+                                )
+                                .labelsHidden()
+                            }
+
+                            HStack {
+                                Text("Fail Threshold")
+                                Spacer()
+                                Text(formatThreshold(failThreshold))
+                                    .foregroundColor(.secondary)
+                                Stepper("",
+                                    value: Binding(
+                                        get: { useLbs ? failThreshold * Double(AppConstants.kgToLbs) : failThreshold },
+                                        set: { newValue in
+                                            let newKg = useLbs ? newValue / Double(AppConstants.kgToLbs) : newValue
+                                            // Clamp to be less than engage threshold
+                                            failThreshold = min(newKg, engageThreshold - 0.5)
+                                        }
+                                    ),
+                                    in: useLbs ? 1.0...11.0 : 0.5...Double(AppConstants.maxFailThreshold),
+                                    step: useLbs ? 1.0 : 0.5
+                                )
+                                .labelsHidden()
+                            }
+
+                            HStack {
+                                Text("Tolerance")
+                                Spacer()
+                                Text("±\(String(format: "%.1f", weightTolerance)) \(useLbs ? "lbs" : "kg")")
+                                    .foregroundColor(.secondary)
+                                Stepper("", value: $weightTolerance, in: 0.1...5.0, step: 0.1)
+                                    .labelsHidden()
+                            }
                         }
 
                         Button {
@@ -412,6 +486,21 @@ struct SettingsView: View {
         } else {
             return String(format: "%.1f kg", valueInKg)
         }
+    }
+
+    /// Format percentage threshold with calculated kg value
+    private func formatPercentageThreshold(_ percentage: Double, label: String) -> String {
+        let percentText = "\(Int(percentage * 100))%"
+        if let target = effectiveTargetWeight {
+            let kgValue = Double(target) * percentage
+            let displayValue = useLbs ? kgValue * Double(AppConstants.kgToLbs) : kgValue
+            let unit = useLbs ? "lbs" : "kg"
+            if label == "tolerance" {
+                return "\(percentText) (±\(String(format: "%.1f", displayValue)) \(unit))"
+            }
+            return "\(percentText) (\(String(format: "%.1f", displayValue)) \(unit))"
+        }
+        return percentText
     }
 }
 

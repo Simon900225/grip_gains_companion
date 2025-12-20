@@ -101,6 +101,44 @@ class ProgressorHandler: ObservableObject {
     /// Configurable fail threshold (kg) - force below this ends grip
     var failThreshold: Float = AppConstants.defaultFailThreshold
 
+    // MARK: - Percentage-Based Thresholds
+
+    /// Whether to use percentage-based thresholds instead of fixed kg values
+    var enablePercentageThresholds: Bool = AppConstants.defaultEnablePercentageThresholds
+
+    /// Engage threshold as percentage of target weight (0.0-1.0)
+    var engagePercentage: Float = AppConstants.defaultEngagePercentage
+
+    /// Disengage threshold as percentage of target weight (0.0-1.0)
+    var disengagePercentage: Float = AppConstants.defaultDisengagePercentage
+
+    /// Tolerance as percentage of target weight (0.0-1.0)
+    var tolerancePercentage: Float = AppConstants.defaultTolerancePercentage
+
+    /// Effective engage threshold - uses percentage if enabled, otherwise fixed kg
+    private var effectiveEngageThreshold: Float {
+        if enablePercentageThresholds, let target = targetWeight {
+            return target * engagePercentage
+        }
+        return engageThreshold
+    }
+
+    /// Effective fail threshold - uses percentage if enabled, otherwise fixed kg
+    private var effectiveFailThreshold: Float {
+        if enablePercentageThresholds, let target = targetWeight {
+            return target * disengagePercentage
+        }
+        return failThreshold
+    }
+
+    /// Effective tolerance - uses percentage if enabled, otherwise fixed kg
+    private var effectiveTolerance: Float {
+        if enablePercentageThresholds, let target = targetWeight {
+            return target * tolerancePercentage
+        }
+        return weightTolerance
+    }
+
     // MARK: - Convenience Properties (for backward compatibility)
 
     var engaged: Bool { state.isEngaged }
@@ -196,7 +234,7 @@ class ProgressorHandler: ObservableObject {
             sessionMean = mean(samples)
             sessionStdDev = standardDeviation(samples)
 
-            if taredWeight < failThreshold {
+            if taredWeight < effectiveFailThreshold {
                 // Grip failed - keep statistics for display after grip ends
                 stopOffTargetTimer()
                 let duration = Date().timeIntervalSince(startTime)
@@ -225,7 +263,7 @@ class ProgressorHandler: ObservableObject {
     }
 
     private func handleIdleState(rawWeight: Float, taredWeight: Float, baseline: Float) {
-        if taredWeight >= engageThreshold {
+        if taredWeight >= effectiveEngageThreshold {
             if canEngage {
                 // Start real grip session
                 weightMedian = nil
@@ -246,7 +284,7 @@ class ProgressorHandler: ObservableObject {
         samples: inout [Float],
         isHolding: Bool
     ) {
-        if taredWeight >= engageThreshold {
+        if taredWeight >= effectiveEngageThreshold {
             if canEngage {
                 // Switch to real grip session
                 weightMedian = nil
@@ -261,11 +299,11 @@ class ProgressorHandler: ObservableObject {
                 state = .weightCalibration(baseline: baseline, samples: [rawWeight], isHolding: true)
                 weightMedian = rawWeight
             }
-        } else if taredWeight < engageThreshold && isHolding {
+        } else if taredWeight < effectiveEngageThreshold && isHolding {
             // Put down weight - calculate final trimmed median and mark as not holding
             weightMedian = trimmedMedian(samples)
             state = .weightCalibration(baseline: baseline, samples: samples, isHolding: false)
-        } else if taredWeight < failThreshold {
+        } else if taredWeight < effectiveFailThreshold {
             // Completely released - back to idle but keep median
             state = .idle(baseline: baseline)
         }
@@ -300,7 +338,7 @@ class ProgressorHandler: ObservableObject {
         let difference = rawWeight - target
         let wasOffTarget = isOffTarget
 
-        if abs(difference) >= weightTolerance {
+        if abs(difference) >= effectiveTolerance {
             isOffTarget = true
             offTargetDirection = difference
             if !wasOffTarget {

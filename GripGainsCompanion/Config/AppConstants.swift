@@ -21,6 +21,15 @@ struct AppConstants {
     static let maxWeightTolerance: Float = 1.0      // kg
     static let offTargetFeedbackInterval: TimeInterval = 1.0  // seconds (throttle)
 
+    // MARK: - Percentage-Based Thresholds
+    static let defaultEnablePercentageThresholds: Bool = false
+    static let defaultEngagePercentage: Float = 0.50      // 50% of target weight
+    static let defaultDisengagePercentage: Float = 0.20   // 20% of target weight
+    static let defaultTolerancePercentage: Float = 0.05   // 5% of target weight
+    static let minPercentage: Float = 0.05                // 5% minimum
+    static let maxEngagePercentage: Float = 0.90          // 90% maximum for engage
+    static let maxDisengagePercentage: Float = 0.50       // 50% maximum for disengage
+
     // MARK: - Web
     static let gripGainsURL = URL(string: "https://gripgains.ca/timer")!
 

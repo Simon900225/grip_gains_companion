@@ -59,6 +59,32 @@ struct StatsChangeModifier: ViewModifier {
     }
 }
 
+// MARK: - Percentage Threshold Sync Modifier
+
+struct PercentageThresholdSyncModifier: ViewModifier {
+    let enablePercentageThresholds: Bool
+    let engagePercentage: Double
+    let disengagePercentage: Double
+    let tolerancePercentage: Double
+    let progressorHandler: ProgressorHandler
+
+    func body(content: Content) -> some View {
+        content
+            .onChange(of: enablePercentageThresholds) { _, newValue in
+                progressorHandler.enablePercentageThresholds = newValue
+            }
+            .onChange(of: engagePercentage) { _, newValue in
+                progressorHandler.engagePercentage = Float(newValue)
+            }
+            .onChange(of: disengagePercentage) { _, newValue in
+                progressorHandler.disengagePercentage = Float(newValue)
+            }
+            .onChange(of: tolerancePercentage) { _, newValue in
+                progressorHandler.tolerancePercentage = Float(newValue)
+            }
+    }
+}
+
 /// Main view that orchestrates all components
 struct ContentView: View {
     @Environment(\.scenePhase) private var scenePhase
@@ -93,6 +119,10 @@ struct ContentView: View {
     @AppStorage("enableCalibration") private var enableCalibration = true
     @AppStorage("engageThreshold") private var engageThreshold: Double = 3.0
     @AppStorage("failThreshold") private var failThreshold: Double = 1.0
+    @AppStorage("enablePercentageThresholds") private var enablePercentageThresholds = false
+    @AppStorage("engagePercentage") private var engagePercentage: Double = Double(AppConstants.defaultEngagePercentage)
+    @AppStorage("disengagePercentage") private var disengagePercentage: Double = Double(AppConstants.defaultDisengagePercentage)
+    @AppStorage("tolerancePercentage") private var tolerancePercentage: Double = Double(AppConstants.defaultTolerancePercentage)
     @AppStorage("backgroundTimeSync") private var backgroundTimeSync = true
     @AppStorage("enableLiveActivity") private var enableLiveActivity = false
     @AppStorage("autoSelectWeight") private var autoSelectWeight = false
@@ -363,6 +393,13 @@ struct ContentView: View {
             .onChange(of: failThreshold) { _, newValue in
                 progressorHandler.failThreshold = Float(newValue)
             }
+            .modifier(PercentageThresholdSyncModifier(
+                enablePercentageThresholds: enablePercentageThresholds,
+                engagePercentage: engagePercentage,
+                disengagePercentage: disengagePercentage,
+                tolerancePercentage: tolerancePercentage,
+                progressorHandler: progressorHandler
+            ))
     }
 
     // MARK: - Target Weight
@@ -653,6 +690,10 @@ struct ContentView: View {
         progressorHandler.enableCalibration = enableCalibration
         progressorHandler.engageThreshold = Float(engageThreshold)
         progressorHandler.failThreshold = Float(failThreshold)
+        progressorHandler.enablePercentageThresholds = enablePercentageThresholds
+        progressorHandler.engagePercentage = Float(engagePercentage)
+        progressorHandler.disengagePercentage = Float(disengagePercentage)
+        progressorHandler.tolerancePercentage = Float(tolerancePercentage)
 
         // Periodic button state polling as backup (only in idle state)
         buttonStateTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
