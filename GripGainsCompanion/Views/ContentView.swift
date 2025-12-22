@@ -283,7 +283,17 @@ struct ContentView: View {
                     backgroundedAt = Date()
                     webCoordinator.recordBackgroundStart()
                 }
+                // Start disconnect timer if connected and not gripping
+                if bluetoothManager.connectionState == .connected && !progressorHandler.engaged {
+                    bluetoothManager.startBackgroundDisconnectTimer()
+                }
             case .active:
+                // Cancel background disconnect timer when returning to foreground
+                bluetoothManager.cancelBackgroundDisconnectTimer()
+                // If disconnected, start scanning to auto-reconnect (if lastConnectedDeviceId is set)
+                if bluetoothManager.connectionState == .disconnected {
+                    bluetoothManager.startScanning()
+                }
                 // Only add background time if we were gripping when we went to background
                 // This prevents prep time from being added to grip elapsed
                 if backgroundTimeSync, wasGrippingAtBackground, let backgroundedAt = backgroundedAt {

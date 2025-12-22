@@ -60,6 +60,7 @@ struct AppConstants {
     static let bleReconnectDelay: TimeInterval = 3.0
     static let discoveryTimeout: TimeInterval = 30.0
     static let maxRetryDelay: TimeInterval = 30.0
+    static let backgroundInactivityTimeout: TimeInterval = 300  // 5 minutes
 
     // MARK: - File Paths
     static let csvFileName = "grip_log.csv"

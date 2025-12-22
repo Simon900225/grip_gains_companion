@@ -44,6 +44,9 @@ class BluetoothManager: NSObject, ObservableObject {
     private var pendingDevice: ProgressorDevice?
     private var shouldAutoReconnect: Bool = true
 
+    /// Background inactivity disconnect timer
+    private var backgroundDisconnectTimer: Timer?
+
     /// Callback when force samples are received
     var onForceSample: ((Float) -> Void)?
 
@@ -139,12 +142,37 @@ class BluetoothManager: NSObject, ObservableObject {
         cancelRetryTimer()
     }
 
-    func disconnect() {
-        Log.ble.info("Disconnecting...")
+    // MARK: - Background Inactivity Timer
+
+    /// Start a timer to disconnect after background inactivity timeout
+    func startBackgroundDisconnectTimer() {
+        cancelBackgroundDisconnectTimer()
+        Log.ble.info("Starting background disconnect timer (\(Int(AppConstants.backgroundInactivityTimeout))s)")
+        backgroundDisconnectTimer = Timer.scheduledTimer(
+            withTimeInterval: AppConstants.backgroundInactivityTimeout,
+            repeats: false
+        ) { [weak self] _ in
+            Log.ble.info("Background inactivity timeout - disconnecting")
+            self?.disconnect(preserveAutoReconnect: true)
+        }
+    }
+
+    /// Cancel the background disconnect timer
+    func cancelBackgroundDisconnectTimer() {
+        if backgroundDisconnectTimer != nil {
+            Log.ble.info("Cancelling background disconnect timer")
+        }
+        backgroundDisconnectTimer?.invalidate()
+        backgroundDisconnectTimer = nil
+    }
+
+    func disconnect(preserveAutoReconnect: Bool = false) {
+        Log.ble.info("Disconnecting\(preserveAutoReconnect ? " (preserving auto-reconnect)" : "")...")
 
         // Stop auto-reconnect
         shouldAutoReconnect = false
         resetRetryState()
+        cancelBackgroundDisconnectTimer()
         pendingDevice = nil
 
         centralManager.stopScan()
@@ -156,8 +184,10 @@ class BluetoothManager: NSObject, ObservableObject {
         progressorService = nil
         connectedDeviceName = nil
 
-        // Clear last connected device to prevent auto-reconnect
-        lastConnectedDeviceId = ""
+        // Clear last connected device to prevent auto-reconnect (unless preserving)
+        if !preserveAutoReconnect {
+            lastConnectedDeviceId = ""
+        }
 
         // Clear device list for fresh scan
         discoveredDevices.removeAll()
@@ -165,8 +195,10 @@ class BluetoothManager: NSObject, ObservableObject {
 
         connectionState = .disconnected
 
-        // Restart scanning to find devices
-        startScanning()
+        // Restart scanning to find devices (unless preserving auto-reconnect for later)
+        if !preserveAutoReconnect {
+            startScanning()
+        }
     }
 }
 
