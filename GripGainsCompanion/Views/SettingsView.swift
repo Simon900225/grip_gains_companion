@@ -117,6 +117,7 @@ struct SettingsView: View {
 
     @State private var manualTargetText: String = "20.00"
     @State private var showThresholdOptions = false
+    @State private var showResetConfirmation = false
     @FocusState private var isTextFieldFocused: Bool
 
     // Decimal options (0.05 increments)
@@ -488,8 +489,10 @@ struct SettingsView: View {
                             onDisconnect()
                         } label: {
                             HStack {
+                                Spacer()
                                 Image(systemName: "wifi.slash")
                                 Text("Disconnect")
+                                Spacer()
                             }
                         }
                     } else {
@@ -546,12 +549,22 @@ struct SettingsView: View {
                 // Reset section
                 Section {
                     Button(role: .destructive) {
-                        resetToDefaults()
+                        showResetConfirmation = true
                     } label: {
                         HStack {
+                            Spacer()
                             Image(systemName: "arrow.counterclockwise")
                             Text("Reset to Defaults")
+                            Spacer()
                         }
+                    }
+                    .alert("Reset to Defaults", isPresented: $showResetConfirmation) {
+                        Button("Reset", role: .destructive) {
+                            resetToDefaults()
+                        }
+                        Button("Cancel", role: .cancel) {}
+                    } message: {
+                        Text("This will restore all settings to their recommended values.")
                     }
                 } footer: {
                     Text("Restores all settings to their recommended values.")
