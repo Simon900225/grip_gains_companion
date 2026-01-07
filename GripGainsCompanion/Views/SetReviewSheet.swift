@@ -9,6 +9,7 @@ struct SetReviewSheet: View {
 
     @State private var copiedRepIndex: Int? = nil
     @State private var copiedAll: Bool = false
+    @State private var isGeneratingShareImage: Bool = false
 
     var body: some View {
         NavigationStack {
@@ -37,6 +38,14 @@ struct SetReviewSheet: View {
             .navigationTitle("Set Summary")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button {
+                        shareFullSet()
+                    } label: {
+                        Image(systemName: "square.and.arrow.up")
+                    }
+                    .disabled(isGeneratingShareImage)
+                }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(action: onDismiss) {
                         Image(systemName: "xmark.circle.fill")
@@ -80,11 +89,19 @@ struct SetReviewSheet: View {
 
     private func repSection(index: Int, rep: RepResult) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            // Rep Header with Copy Button
+            // Rep Header with Share and Copy Buttons
             HStack {
                 Text("Rep \(index + 1)")
                     .font(.headline)
                 Spacer()
+                Button {
+                    shareRep(index: index, rep: rep)
+                } label: {
+                    Image(systemName: "square.and.arrow.up")
+                        .font(.body)
+                        .foregroundColor(.secondary)
+                }
+                .disabled(isGeneratingShareImage)
                 Button {
                     copyForceDataToClipboard(rep: rep, index: index)
                 } label: {
@@ -176,6 +193,44 @@ struct SetReviewSheet: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
             copiedAll = false
         }
+    }
+
+    // MARK: - Share Methods
+
+    @MainActor
+    private func shareFullSet() {
+        isGeneratingShareImage = true
+
+        let shareView = ShareableSetSummaryView(stats: stats, useLbs: useLbs)
+
+        if let image = ImageShareUtility.renderToImage(
+            shareView,
+            width: ShareableSetSummaryView.exportWidth
+        ) {
+            ImageShareUtility.shareImage(image)
+        }
+
+        isGeneratingShareImage = false
+    }
+
+    @MainActor
+    private func shareRep(index: Int, rep: RepResult) {
+        isGeneratingShareImage = true
+
+        let shareView = ShareableRepView(
+            rep: rep,
+            repNumber: index + 1,
+            useLbs: useLbs
+        )
+
+        if let image = ImageShareUtility.renderToImage(
+            shareView,
+            width: ShareableRepView.exportWidth
+        ) {
+            ImageShareUtility.shareImage(image)
+        }
+
+        isGeneratingShareImage = false
     }
 }
 
