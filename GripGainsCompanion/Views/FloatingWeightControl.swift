@@ -11,6 +11,7 @@ struct FloatingWeightControl: View {
     let onIncrement: () -> Void
     let onDecrement: () -> Void
     let onSet: () -> Void
+    let onReset: () -> Void  // Reset suggested weight to GG target
 
     /// Can set if we have a suggested weight that differs from current GG target
     private var canSet: Bool {
@@ -20,13 +21,21 @@ struct FloatingWeightControl: View {
         return abs(suggested - gg) > 0.001
     }
 
+    /// Can reset if suggested weight differs from GG target
+    private var canReset: Bool {
+        canSet  // Same logic - can reset when they differ
+    }
+
     var body: some View {
         VStack(spacing: 8) {
-            // GG target weight (reference)
+            // GG target weight (reference) - tap to reset suggested weight
             if let gg = ggTargetWeight {
                 Text("GG: \(WeightFormatter.format(gg, useLbs: useLbs, decimals: 2))")
                     .font(.caption)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(canReset ? .blue : .secondary)
+                    .onTapGesture {
+                        if canReset { onReset() }
+                    }
             }
 
             // Adjustable weight with +/- buttons
@@ -85,7 +94,8 @@ struct FloatingWeightControl: View {
         canIncrement: true,
         onIncrement: {},
         onDecrement: {},
-        onSet: {}
+        onSet: {},
+        onReset: {}
     )
     .padding()
     .background(Color.black)
@@ -100,7 +110,8 @@ struct FloatingWeightControl: View {
         canIncrement: true,
         onIncrement: {},
         onDecrement: {},
-        onSet: {}
+        onSet: {},
+        onReset: {}
     )
     .padding()
     .background(Color.black)
@@ -115,7 +126,8 @@ struct FloatingWeightControl: View {
         canIncrement: true,
         onIncrement: {},
         onDecrement: {},
-        onSet: {}
+        onSet: {},
+        onReset: {}
     )
     .padding()
     .background(Color.black)

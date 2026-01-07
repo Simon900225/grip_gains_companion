@@ -600,7 +600,8 @@ struct ContentView: View {
                     canIncrement: canIncrementSuggestedWeight,
                     onIncrement: { incrementSuggestedWeight() },
                     onDecrement: { decrementSuggestedWeight() },
-                    onSet: { setSuggestedWeightInWebUI() }
+                    onSet: { setSuggestedWeightInWebUI() },
+                    onReset: { suggestedWeightKg = scrapedTargetWeight }
                 )
                 .position(
                     x: currentX + controlWidth / 2 + weightControlDragOffset.width,
