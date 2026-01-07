@@ -8,6 +8,18 @@ struct BoundsPickerRow: View {
     let options: [Double]  // In kg, includes 0 for "Off"
     let useLbs: Bool
 
+    /// Binding that snaps to nearest picker option (handles floating-point imprecision)
+    private var snappedBinding: Binding<Double> {
+        Binding(
+            get: {
+                // Find nearest option to current value (within tolerance)
+                let allOptions = [0.0] + options.filter { $0 > 0 }
+                return allOptions.min(by: { abs($0 - value) < abs($1 - value) }) ?? value
+            },
+            set: { value = $0 }
+        )
+    }
+
     var body: some View {
         HStack {
             Text(label)
@@ -15,7 +27,7 @@ struct BoundsPickerRow: View {
                 .foregroundColor(.secondary)
                 .frame(width: 30, alignment: .leading)
 
-            Picker("", selection: $value) {
+            Picker("", selection: snappedBinding) {
                 Text("Off").tag(0.0)
                 ForEach(options.filter { $0 > 0 }, id: \.self) { option in
                     let displayValue = useLbs ? option * Double(AppConstants.kgToLbs) : option
