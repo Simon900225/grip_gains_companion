@@ -34,11 +34,31 @@ struct AppConstants {
     // Floor = minimum absolute value (0 = disabled, use pure percentage)
     // Ceiling = maximum absolute value (0 = disabled, use pure percentage)
     static let defaultEngageFloor: Float = 3.0
-    static let defaultEngageCeiling: Float = 0.0      // Disabled by default
+    static let defaultEngageCeiling: Float = 0.0
     static let defaultDisengageFloor: Float = 2.0
-    static let defaultDisengageCeiling: Float = 0.0   // Disabled by default
+    static let defaultDisengageCeiling: Float = 0.0
     static let defaultToleranceFloor: Float = 1.0
-    static let defaultToleranceCeiling: Float = 0.0   // Disabled by default
+    static let defaultToleranceCeiling: Float = 0.0
+
+    // MARK: - UI Defaults
+    static let defaultEnableHaptics: Bool = true
+    static let defaultEnableTargetSound: Bool = true
+    static let defaultShowGripStats: Bool = true
+    static let defaultShowSetReview: Bool = false
+    static let defaultShowStatusBar: Bool = true
+    static let defaultExpandedForceBar: Bool = true
+    static let defaultShowForceGraph: Bool = true
+    static let defaultForceGraphWindow: Int = 10
+    static let defaultFullScreen: Bool = true
+    static let defaultEnableTargetWeight: Bool = true
+    static let defaultUseManualTarget: Bool = false
+    static let defaultManualTargetWeight: Double = 20.0
+    static let defaultEnableCalibration: Bool = true
+    static let defaultBackgroundTimeSync: Bool = true
+    static let defaultEnableLiveActivity: Bool = false
+    static let defaultAutoSelectWeight: Bool = false
+    static let defaultAutoSelectFromManual: Bool = false
+    static let defaultUseKeyboardInput: Bool = false
 
     // MARK: - Web
     static let gripGainsURL = URL(string: "https://gripgains.ca/timer")!

@@ -155,24 +155,24 @@ struct ContentView: View {
     @State private var scrapedTargetDuration: Int?
     @State private var scrapedRemainingTime: Int?
     @AppStorage("useLbs") private var useLbs = false
-    @AppStorage("enableHaptics") private var enableHaptics = true
-    @AppStorage("enableTargetSound") private var enableTargetSound = true
-    @AppStorage("showStatusBar") private var showStatusBar = true
-    @AppStorage("expandedForceBar") private var expandedForceBar = false
-    @AppStorage("showForceGraph") private var showForceGraph = false
-    @AppStorage("forceGraphWindow") private var forceGraphWindow = 10
-    @AppStorage("fullScreen") private var fullScreen = true
+    @AppStorage("enableHaptics") private var enableHaptics = AppConstants.defaultEnableHaptics
+    @AppStorage("enableTargetSound") private var enableTargetSound = AppConstants.defaultEnableTargetSound
+    @AppStorage("showStatusBar") private var showStatusBar = AppConstants.defaultShowStatusBar
+    @AppStorage("expandedForceBar") private var expandedForceBar = AppConstants.defaultExpandedForceBar
+    @AppStorage("showForceGraph") private var showForceGraph = AppConstants.defaultShowForceGraph
+    @AppStorage("forceGraphWindow") private var forceGraphWindow = AppConstants.defaultForceGraphWindow
+    @AppStorage("fullScreen") private var fullScreen = AppConstants.defaultFullScreen
     @AppStorage("forceBarTheme") private var forceBarTheme = ForceBarTheme.system.rawValue
     @AppStorage("settingsButtonX") private var settingsButtonX: Double = -1
     @AppStorage("settingsButtonY") private var settingsButtonY: Double = -1
-    @AppStorage("enableTargetWeight") private var enableTargetWeight = true
-    @AppStorage("useManualTarget") private var useManualTarget = false
-    @AppStorage("manualTargetWeight") private var manualTargetWeight: Double = 20.0
-    @AppStorage("showGripStats") private var showGripStats = true
+    @AppStorage("enableTargetWeight") private var enableTargetWeight = AppConstants.defaultEnableTargetWeight
+    @AppStorage("useManualTarget") private var useManualTarget = AppConstants.defaultUseManualTarget
+    @AppStorage("manualTargetWeight") private var manualTargetWeight: Double = AppConstants.defaultManualTargetWeight
+    @AppStorage("showGripStats") private var showGripStats = AppConstants.defaultShowGripStats
     @AppStorage("weightTolerance") private var weightTolerance: Double = Double(AppConstants.defaultWeightTolerance)
-    @AppStorage("enableCalibration") private var enableCalibration = true
-    @AppStorage("engageThreshold") private var engageThreshold: Double = 3.0
-    @AppStorage("failThreshold") private var failThreshold: Double = 1.0
+    @AppStorage("enableCalibration") private var enableCalibration = AppConstants.defaultEnableCalibration
+    @AppStorage("engageThreshold") private var engageThreshold: Double = Double(AppConstants.defaultEngageThreshold)
+    @AppStorage("failThreshold") private var failThreshold: Double = Double(AppConstants.defaultFailThreshold)
     @AppStorage("enablePercentageThresholds") private var enablePercentageThresholds = AppConstants.defaultEnablePercentageThresholds
     @AppStorage("engagePercentage") private var engagePercentage: Double = Double(AppConstants.defaultEngagePercentage)
     @AppStorage("disengagePercentage") private var disengagePercentage: Double = Double(AppConstants.defaultDisengagePercentage)
@@ -183,10 +183,10 @@ struct ContentView: View {
     @AppStorage("disengageCeiling") private var disengageCeiling: Double = Double(AppConstants.defaultDisengageCeiling)
     @AppStorage("toleranceFloor") private var toleranceFloor: Double = Double(AppConstants.defaultToleranceFloor)
     @AppStorage("toleranceCeiling") private var toleranceCeiling: Double = Double(AppConstants.defaultToleranceCeiling)
-    @AppStorage("backgroundTimeSync") private var backgroundTimeSync = true
-    @AppStorage("enableLiveActivity") private var enableLiveActivity = false
-    @AppStorage("autoSelectWeight") private var autoSelectWeight = false
-    @AppStorage("autoSelectFromManual") private var autoSelectFromManual = false
+    @AppStorage("backgroundTimeSync") private var backgroundTimeSync = AppConstants.defaultBackgroundTimeSync
+    @AppStorage("enableLiveActivity") private var enableLiveActivity = AppConstants.defaultEnableLiveActivity
+    @AppStorage("autoSelectWeight") private var autoSelectWeight = AppConstants.defaultAutoSelectWeight
+    @AppStorage("autoSelectFromManual") private var autoSelectFromManual = AppConstants.defaultAutoSelectFromManual
     @State private var dragOffset: CGSize = .zero
     @State private var displayedMean: Float?
     @State private var displayedStdDev: Float?

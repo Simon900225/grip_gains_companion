@@ -68,32 +68,32 @@ struct SettingsView: View {
     var progressorHandler: ProgressorHandler?
 
     @Environment(\.dismiss) private var dismiss
-    @AppStorage("enableHaptics") private var enableHaptics = true
-    @AppStorage("enableTargetSound") private var enableTargetSound = true
-    @AppStorage("showGripStats") private var showGripStats = true
-    @AppStorage("showSetReview") private var showSetReview = false
-    @AppStorage("showStatusBar") private var showStatusBar = true
-    @AppStorage("expandedForceBar") private var expandedForceBar = false
-    @AppStorage("showForceGraph") private var showForceGraph = false
-    @AppStorage("forceGraphWindow") private var forceGraphWindow = 10  // seconds, 0 = entire session
-    @AppStorage("fullScreen") private var fullScreen = true
+    @AppStorage("enableHaptics") private var enableHaptics = AppConstants.defaultEnableHaptics
+    @AppStorage("enableTargetSound") private var enableTargetSound = AppConstants.defaultEnableTargetSound
+    @AppStorage("showGripStats") private var showGripStats = AppConstants.defaultShowGripStats
+    @AppStorage("showSetReview") private var showSetReview = AppConstants.defaultShowSetReview
+    @AppStorage("showStatusBar") private var showStatusBar = AppConstants.defaultShowStatusBar
+    @AppStorage("expandedForceBar") private var expandedForceBar = AppConstants.defaultExpandedForceBar
+    @AppStorage("showForceGraph") private var showForceGraph = AppConstants.defaultShowForceGraph
+    @AppStorage("forceGraphWindow") private var forceGraphWindow = AppConstants.defaultForceGraphWindow
+    @AppStorage("fullScreen") private var fullScreen = AppConstants.defaultFullScreen
     @AppStorage("forceBarTheme") private var forceBarTheme = ForceBarTheme.system.rawValue
-    @AppStorage("enableTargetWeight") private var enableTargetWeight = true
-    @AppStorage("useManualTarget") private var useManualTarget = false
-    @AppStorage("manualTargetWeight") private var manualTargetWeight: Double = 20.0
+    @AppStorage("enableTargetWeight") private var enableTargetWeight = AppConstants.defaultEnableTargetWeight
+    @AppStorage("useManualTarget") private var useManualTarget = AppConstants.defaultUseManualTarget
+    @AppStorage("manualTargetWeight") private var manualTargetWeight: Double = AppConstants.defaultManualTargetWeight
     @AppStorage("weightTolerance") private var weightTolerance: Double = Double(AppConstants.defaultWeightTolerance)
 
     // State for wheel pickers
     @State private var targetWholeNumber: Int = 20
     @State private var targetDecimal: Int = 0  // 0, 5, 10, 15... 95
-    @AppStorage("useKeyboardInput") private var useKeyboardInput: Bool = false
-    @AppStorage("enableCalibration") private var enableCalibration = true
-    @AppStorage("backgroundTimeSync") private var backgroundTimeSync = true
-    @AppStorage("enableLiveActivity") private var enableLiveActivity = false
-    @AppStorage("autoSelectWeight") private var autoSelectWeight = false
-    @AppStorage("autoSelectFromManual") private var autoSelectFromManual = false
-    @AppStorage("engageThreshold") private var engageThreshold: Double = 3.0  // stored in kg
-    @AppStorage("failThreshold") private var failThreshold: Double = 1.0      // stored in kg
+    @AppStorage("useKeyboardInput") private var useKeyboardInput = AppConstants.defaultUseKeyboardInput
+    @AppStorage("enableCalibration") private var enableCalibration = AppConstants.defaultEnableCalibration
+    @AppStorage("backgroundTimeSync") private var backgroundTimeSync = AppConstants.defaultBackgroundTimeSync
+    @AppStorage("enableLiveActivity") private var enableLiveActivity = AppConstants.defaultEnableLiveActivity
+    @AppStorage("autoSelectWeight") private var autoSelectWeight = AppConstants.defaultAutoSelectWeight
+    @AppStorage("autoSelectFromManual") private var autoSelectFromManual = AppConstants.defaultAutoSelectFromManual
+    @AppStorage("engageThreshold") private var engageThreshold: Double = Double(AppConstants.defaultEngageThreshold)
+    @AppStorage("failThreshold") private var failThreshold: Double = Double(AppConstants.defaultFailThreshold)
     @AppStorage("enablePercentageThresholds") private var enablePercentageThresholds = AppConstants.defaultEnablePercentageThresholds
     @AppStorage("engagePercentage") private var engagePercentage: Double = Double(AppConstants.defaultEngagePercentage)
     @AppStorage("disengagePercentage") private var disengagePercentage: Double = Double(AppConstants.defaultDisengagePercentage)
@@ -521,6 +521,20 @@ struct SettingsView: View {
                     }
                     .pickerStyle(.segmented)
                 }
+
+                // Reset section
+                Section {
+                    Button(role: .destructive) {
+                        resetToDefaults()
+                    } label: {
+                        HStack {
+                            Image(systemName: "arrow.counterclockwise")
+                            Text("Reset to Defaults")
+                        }
+                    }
+                } footer: {
+                    Text("Restores all settings to their recommended values.")
+                }
             }
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
@@ -556,6 +570,60 @@ struct SettingsView: View {
         let roundedDecimal = (decimal / 5) * 5
         targetWholeNumber = whole
         targetDecimal = min(95, max(0, roundedDecimal))
+    }
+
+    /// Reset all settings to their default values
+    private func resetToDefaults() {
+        // Feedback
+        enableHaptics = AppConstants.defaultEnableHaptics
+        enableTargetSound = AppConstants.defaultEnableTargetSound
+        showGripStats = AppConstants.defaultShowGripStats
+        showSetReview = AppConstants.defaultShowSetReview
+
+        // Display
+        showStatusBar = AppConstants.defaultShowStatusBar
+        expandedForceBar = AppConstants.defaultExpandedForceBar
+        showForceGraph = AppConstants.defaultShowForceGraph
+        forceGraphWindow = AppConstants.defaultForceGraphWindow
+        fullScreen = AppConstants.defaultFullScreen
+        forceBarTheme = ForceBarTheme.system.rawValue
+
+        // Target weight
+        enableTargetWeight = AppConstants.defaultEnableTargetWeight
+        useManualTarget = AppConstants.defaultUseManualTarget
+        manualTargetWeight = AppConstants.defaultManualTargetWeight
+        weightTolerance = Double(AppConstants.defaultWeightTolerance)
+
+        // Calibration & experimental
+        enableCalibration = AppConstants.defaultEnableCalibration
+        backgroundTimeSync = AppConstants.defaultBackgroundTimeSync
+        enableLiveActivity = AppConstants.defaultEnableLiveActivity
+        autoSelectWeight = AppConstants.defaultAutoSelectWeight
+        autoSelectFromManual = AppConstants.defaultAutoSelectFromManual
+        useKeyboardInput = AppConstants.defaultUseKeyboardInput
+
+        // Fixed thresholds
+        engageThreshold = Double(AppConstants.defaultEngageThreshold)
+        failThreshold = Double(AppConstants.defaultFailThreshold)
+
+        // Percentage thresholds
+        enablePercentageThresholds = AppConstants.defaultEnablePercentageThresholds
+        engagePercentage = Double(AppConstants.defaultEngagePercentage)
+        disengagePercentage = Double(AppConstants.defaultDisengagePercentage)
+        tolerancePercentage = Double(AppConstants.defaultTolerancePercentage)
+
+        // Floor/ceiling bounds
+        engageFloor = Double(AppConstants.defaultEngageFloor)
+        engageCeiling = Double(AppConstants.defaultEngageCeiling)
+        disengageFloor = Double(AppConstants.defaultDisengageFloor)
+        disengageCeiling = Double(AppConstants.defaultDisengageCeiling)
+        toleranceFloor = Double(AppConstants.defaultToleranceFloor)
+        toleranceCeiling = Double(AppConstants.defaultToleranceCeiling)
+
+        // Reinitialize wheel pickers to reflect new values
+        initializeWheelPickers()
+        let displayValue = useLbs ? manualTargetWeight * Double(AppConstants.kgToLbs) : manualTargetWeight
+        manualTargetText = String(format: "%.2f", displayValue)
     }
 
     /// Sync wheel picker values back to manualTargetWeight (stored in kg)
