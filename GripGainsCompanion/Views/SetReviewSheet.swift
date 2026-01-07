@@ -134,7 +134,7 @@ struct SetReviewSheet: View {
     }
 
     /// Format deviation as "+0.04 kg (+1.0%)"
-    private func formatDeviation(absolute: Float, percentage: Float) -> String {
+    private func formatDeviation(absolute: Double, percentage: Double) -> String {
         let displayAbs = useLbs ? absolute * AppConstants.kgToLbs : absolute
         let unit = useLbs ? "lbs" : "kg"
         return String(format: "%+.2f %@ (%+.1f%%)", displayAbs, unit, percentage)
@@ -183,14 +183,14 @@ struct SetReviewSheet: View {
 
 /// Force graph for a single rep using sample indices as x-axis
 struct RepForceGraphView: View {
-    let samples: [Float]
+    let samples: [Double]
     let duration: TimeInterval
-    let targetWeight: Float?
+    let targetWeight: Double?
     let useLbs: Bool
     let filterStartIndex: Int
     let filterEndIndex: Int
 
-    private func displayForce(_ force: Float) -> Double {
+    private func displayForce(_ force: Double) -> Double {
         Double(useLbs ? force * AppConstants.kgToLbs : force)
     }
 

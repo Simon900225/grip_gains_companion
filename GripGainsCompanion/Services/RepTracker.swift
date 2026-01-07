@@ -27,8 +27,8 @@ class RepTracker: ObservableObject {
     /// Record a completed rep
     func recordRep(
         duration: TimeInterval,
-        samples: [Float],
-        targetWeight: Float?
+        samples: [Double],
+        targetWeight: Double?
     ) {
         let rep = RepResult(
             timestamp: Date(),

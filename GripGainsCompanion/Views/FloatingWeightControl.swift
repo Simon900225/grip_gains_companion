@@ -3,8 +3,8 @@ import SwiftUI
 /// Floating control for manually selecting target weight
 /// Shows GG target weight (reference), adjustable weight with +/-, and SET button
 struct FloatingWeightControl: View {
-    let ggTargetWeight: Float?  // Current target from gripgains (reference)
-    let suggestedWeight: Float?  // Suggested weight from median (adjustable)
+    let ggTargetWeight: Double?  // Current target from gripgains (reference)
+    let suggestedWeight: Double?  // Suggested weight from median (adjustable)
     let useLbs: Bool
     let canDecrement: Bool
     let canIncrement: Bool

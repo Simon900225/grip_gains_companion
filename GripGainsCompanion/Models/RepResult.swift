@@ -5,10 +5,10 @@ final class RepResult: Identifiable {
     let id = UUID()
     let timestamp: Date
     let duration: TimeInterval
-    let samples: [Float]
-    let targetWeight: Float?
+    let samples: [Double]
+    let targetWeight: Double?
 
-    init(timestamp: Date, duration: TimeInterval, samples: [Float], targetWeight: Float?) {
+    init(timestamp: Date, duration: TimeInterval, samples: [Double], targetWeight: Double?) {
         self.timestamp = timestamp
         self.duration = duration
         self.samples = samples
@@ -21,26 +21,26 @@ final class RepResult: Identifiable {
     struct FilterResult {
         let startIndex: Int
         let endIndex: Int
-        let bandMedian: Float
-        let bandStdDev: Float
-        let bandLower: Float
-        let bandUpper: Float
+        let bandMedian: Double
+        let bandStdDev: Double
+        let bandLower: Double
+        let bandUpper: Double
     }
 
     /// Number of standard deviations for the stable band
-    private static let bandMultiplier: Float = 3.0
+    private static let bandMultiplier: Double = 3.0
 
     /// Cached filter result (calculated once on first access)
     private lazy var _filterResult: FilterResult = computeFilterResult()
 
     /// Cached filtered samples (calculated once on first access)
-    private lazy var _filteredSamples: [Float] = computeFilteredSamples()
+    private lazy var _filteredSamples: [Double] = computeFilteredSamples()
 
     /// Calculate filter bounds using middle 50% of samples to define stable band
     var filterResult: FilterResult { _filterResult }
 
     /// Filtered samples (holding phase only, excluding pickup and release)
-    var filteredSamples: [Float] { _filteredSamples }
+    var filteredSamples: [Double] { _filteredSamples }
 
     private func computeFilterResult() -> FilterResult {
         guard samples.count >= 4 else {
@@ -96,7 +96,7 @@ final class RepResult: Identifiable {
         )
     }
 
-    private func computeFilteredSamples() -> [Float] {
+    private func computeFilteredSamples() -> [Double] {
         let filter = filterResult
         guard filter.startIndex <= filter.endIndex else { return samples }
         return Array(samples[filter.startIndex...filter.endIndex])
@@ -104,54 +104,54 @@ final class RepResult: Identifiable {
 
     // MARK: - Computed Statistics (using filtered samples)
 
-    var mean: Float {
+    var mean: Double {
         StatisticsUtilities.mean(filteredSamples)
     }
 
-    var median: Float {
+    var median: Double {
         StatisticsUtilities.median(filteredSamples)
     }
 
     /// 25th percentile (first quartile)
-    var q1: Float {
+    var q1: Double {
         StatisticsUtilities.percentile(0.25, of: filteredSamples)
     }
 
     /// 75th percentile (third quartile)
-    var q3: Float {
+    var q3: Double {
         StatisticsUtilities.percentile(0.75, of: filteredSamples)
     }
 
     /// Interquartile range
-    var iqr: Float {
+    var iqr: Double {
         q3 - q1
     }
 
     /// Standard deviation of filtered samples
-    var stdDev: Float {
+    var stdDev: Double {
         StatisticsUtilities.standardDeviation(filteredSamples)
     }
 
     /// Absolute deviation from target weight in kg (nil if no target)
-    var absoluteDeviation: Float? {
+    var absoluteDeviation: Double? {
         guard let target = targetWeight else { return nil }
         return median - target
     }
 
     /// Deviation from target weight as percentage (nil if no target)
     /// Uses median as the measured value for comparison
-    var deviationPercentage: Float? {
+    var deviationPercentage: Double? {
         guard let target = targetWeight, target > 0 else { return nil }
         return ((median - target) / target) * 100
     }
 
     // MARK: - Raw Statistics (for comparison in debug view)
 
-    var rawMedian: Float {
+    var rawMedian: Double {
         StatisticsUtilities.median(samples)
     }
 
-    var rawStdDev: Float {
+    var rawStdDev: Double {
         StatisticsUtilities.standardDeviation(samples)
     }
 }

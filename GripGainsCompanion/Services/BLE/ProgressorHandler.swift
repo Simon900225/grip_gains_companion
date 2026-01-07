@@ -7,9 +7,9 @@ import Combine
 enum ProgressorState: Equatable {
     case waitingForSamples
     case calibrating(startTime: Date, samples: [TimestampedSample])
-    case idle(baseline: Float)
-    case gripping(baseline: Float, startTimestamp: UInt32, samples: [TimestampedSample])
-    case weightCalibration(baseline: Float, samples: [TimestampedSample], isHolding: Bool)
+    case idle(baseline: Double)
+    case gripping(baseline: Double, startTimestamp: UInt32, samples: [TimestampedSample])
+    case weightCalibration(baseline: Double, samples: [TimestampedSample], isHolding: Bool)
 
     // Convenience computed properties for UI
     var isCalibrating: Bool {
@@ -27,7 +27,7 @@ enum ProgressorState: Equatable {
         return false
     }
 
-    var baseline: Float {
+    var baseline: Double {
         switch self {
         case .idle(let baseline), .gripping(let baseline, _, _), .weightCalibration(let baseline, _, _):
             return baseline
@@ -42,16 +42,16 @@ class ProgressorHandler: ObservableObject {
     // MARK: - Published State
 
     @Published private(set) var state: ProgressorState = .waitingForSamples
-    @Published private(set) var currentForce: Float = 0.0
+    @Published private(set) var currentForce: Double = 0.0
     @Published private(set) var calibrationTimeRemaining: TimeInterval = AppConstants.calibrationDuration
-    @Published private(set) var weightMedian: Float?
+    @Published private(set) var weightMedian: Double?
 
     // Session statistics (live during grip, final after grip ends)
-    @Published private(set) var sessionMean: Float?
-    @Published private(set) var sessionStdDev: Float?
+    @Published private(set) var sessionMean: Double?
+    @Published private(set) var sessionStdDev: Double?
 
     // Force history for graph (timestamp, force value)
-    @Published private(set) var forceHistory: [(timestamp: Date, force: Float)] = []
+    @Published private(set) var forceHistory: [(timestamp: Date, force: Double)] = []
 
     // Last device timestamp received (microseconds) - used for elapsed time calculation
     private var lastTimestamp: UInt32 = 0
@@ -63,16 +63,16 @@ class ProgressorHandler: ObservableObject {
     // MARK: - Target Weight State
 
     /// Target weight from website or manual input
-    var targetWeight: Float?
+    var targetWeight: Double?
 
     /// Tolerance for off-target detection
-    var weightTolerance: Float = AppConstants.defaultWeightTolerance
+    var weightTolerance: Double = Double(AppConstants.defaultWeightTolerance)
 
     /// Whether current weight is off target (only valid during gripping)
     @Published private(set) var isOffTarget: Bool = false
 
     /// Direction of off-target: positive = too heavy, negative = too light, nil = on target
-    @Published private(set) var offTargetDirection: Float?
+    @Published private(set) var offTargetDirection: Double?
 
     /// Timer for continuous off-target feedback
     private var offTargetTimer: Timer?
@@ -86,13 +86,13 @@ class ProgressorHandler: ObservableObject {
     let gripFailed = PassthroughSubject<Void, Never>()
 
     /// Publishes grip session data when disengaged (duration, samples)
-    let gripDisengaged = PassthroughSubject<(TimeInterval, [Float]), Never>()
+    let gripDisengaged = PassthroughSubject<(TimeInterval, [Double]), Never>()
 
     /// Publishes force updates (force, engaged, weightMedian, weightCalibrationEngaged)
-    let forceUpdated = PassthroughSubject<(Float, Bool, Float?, Bool), Never>()
+    let forceUpdated = PassthroughSubject<(Double, Bool, Double?, Bool), Never>()
 
     /// Publishes when off-target state changes during gripping (isOffTarget, direction)
-    let offTargetChanged = PassthroughSubject<(Bool, Float?), Never>()
+    let offTargetChanged = PassthroughSubject<(Bool, Double?), Never>()
 
     // MARK: - External Input
 
@@ -103,10 +103,10 @@ class ProgressorHandler: ObservableObject {
     var enableCalibration: Bool = true
 
     /// Configurable engage threshold (kg) - force needed to start grip
-    var engageThreshold: Float = AppConstants.defaultEngageThreshold
+    var engageThreshold: Double = Double(AppConstants.defaultEngageThreshold)
 
     /// Configurable fail threshold (kg) - force below this ends grip
-    var failThreshold: Float = AppConstants.defaultFailThreshold
+    var failThreshold: Double = Double(AppConstants.defaultFailThreshold)
 
     // MARK: - Percentage-Based Thresholds
 
@@ -114,37 +114,37 @@ class ProgressorHandler: ObservableObject {
     var enablePercentageThresholds: Bool = AppConstants.defaultEnablePercentageThresholds
 
     /// Engage threshold as percentage of target weight (0.0-1.0)
-    var engagePercentage: Float = AppConstants.defaultEngagePercentage
+    var engagePercentage: Double = Double(AppConstants.defaultEngagePercentage)
 
     /// Disengage threshold as percentage of target weight (0.0-1.0)
-    var disengagePercentage: Float = AppConstants.defaultDisengagePercentage
+    var disengagePercentage: Double = Double(AppConstants.defaultDisengagePercentage)
 
     /// Tolerance as percentage of target weight (0.0-1.0)
-    var tolerancePercentage: Float = AppConstants.defaultTolerancePercentage
+    var tolerancePercentage: Double = Double(AppConstants.defaultTolerancePercentage)
 
     // MARK: - Percentage Threshold Bounds
 
     /// Minimum engage threshold in kg (0 = disabled, use pure percentage)
-    var engageFloor: Float = AppConstants.defaultEngageFloor
+    var engageFloor: Double = Double(AppConstants.defaultEngageFloor)
     /// Maximum engage threshold in kg (0 = disabled, use pure percentage)
-    var engageCeiling: Float = AppConstants.defaultEngageCeiling
+    var engageCeiling: Double = Double(AppConstants.defaultEngageCeiling)
     /// Minimum disengage threshold in kg (0 = disabled, use pure percentage)
-    var disengageFloor: Float = AppConstants.defaultDisengageFloor
+    var disengageFloor: Double = Double(AppConstants.defaultDisengageFloor)
     /// Maximum disengage threshold in kg (0 = disabled, use pure percentage)
-    var disengageCeiling: Float = AppConstants.defaultDisengageCeiling
+    var disengageCeiling: Double = Double(AppConstants.defaultDisengageCeiling)
     /// Minimum tolerance in kg (0 = disabled, use pure percentage)
-    var toleranceFloor: Float = AppConstants.defaultToleranceFloor
+    var toleranceFloor: Double = Double(AppConstants.defaultToleranceFloor)
     /// Maximum tolerance in kg (0 = disabled, use pure percentage)
-    var toleranceCeiling: Float = AppConstants.defaultToleranceCeiling
+    var toleranceCeiling: Double = Double(AppConstants.defaultToleranceCeiling)
 
     /// Apply floor and ceiling bounds to a value (0 = disabled for that bound)
-    private func applyBounds(_ value: Float, floor: Float, ceiling: Float) -> Float {
+    private func applyBounds(_ value: Double, floor: Double, ceiling: Double) -> Double {
         let floored = floor > 0 ? max(value, floor) : value
         return ceiling > 0 ? min(floored, ceiling) : floored
     }
 
     /// Effective engage threshold - uses percentage if enabled, otherwise fixed kg
-    private var effectiveEngageThreshold: Float {
+    private var effectiveEngageThreshold: Double {
         if enablePercentageThresholds, let target = targetWeight {
             return applyBounds(target * engagePercentage, floor: engageFloor, ceiling: engageCeiling)
         }
@@ -152,7 +152,7 @@ class ProgressorHandler: ObservableObject {
     }
 
     /// Effective fail threshold - uses percentage if enabled, otherwise fixed kg
-    private var effectiveFailThreshold: Float {
+    private var effectiveFailThreshold: Double {
         if enablePercentageThresholds, let target = targetWeight {
             return applyBounds(target * disengagePercentage, floor: disengageFloor, ceiling: disengageCeiling)
         }
@@ -160,7 +160,7 @@ class ProgressorHandler: ObservableObject {
     }
 
     /// Effective tolerance - uses percentage if enabled, otherwise fixed kg
-    private var effectiveTolerance: Float {
+    private var effectiveTolerance: Double {
         if enablePercentageThresholds, let target = targetWeight {
             return applyBounds(target * tolerancePercentage, floor: toleranceFloor, ceiling: toleranceCeiling)
         }
@@ -187,7 +187,7 @@ class ProgressorHandler: ObservableObject {
     /// - Parameters:
     ///   - rawWeight: Force value from device
     ///   - timestamp: Device timestamp in microseconds
-    func processSample(_ rawWeight: Float, timestamp: UInt32) {
+    func processSample(_ rawWeight: Double, timestamp: UInt32) {
         DispatchQueue.main.async { [self] in
             currentForce = rawWeight
             lastTimestamp = timestamp
@@ -238,7 +238,7 @@ class ProgressorHandler: ObservableObject {
 
     // MARK: - State Machine Logic
 
-    private func processStateTransition(rawWeight: Float, timestamp: UInt32) {
+    private func processStateTransition(rawWeight: Double, timestamp: UInt32) {
         let sample = TimestampedSample(weight: rawWeight, timestamp: timestamp)
 
         switch state {
@@ -261,7 +261,7 @@ class ProgressorHandler: ObservableObject {
             calibrationTimeRemaining = max(0, AppConstants.calibrationDuration - elapsed)
 
             if elapsed >= AppConstants.calibrationDuration {
-                let baseline = samples.map(\.weight).reduce(0, +) / Float(samples.count)
+                let baseline = samples.map(\.weight).reduce(0, +) / Double(samples.count)
                 state = .idle(baseline: baseline)
                 calibrationTimeRemaining = 0
                 calibrationCompleted.send()
@@ -312,7 +312,7 @@ class ProgressorHandler: ObservableObject {
         }
     }
 
-    private func handleIdleState(rawWeight: Float, taredWeight: Float, baseline: Float, timestamp: UInt32) {
+    private func handleIdleState(rawWeight: Double, taredWeight: Double, baseline: Double, timestamp: UInt32) {
         let sample = TimestampedSample(weight: rawWeight, timestamp: timestamp)
         if taredWeight >= effectiveEngageThreshold {
             if canEngage {
@@ -329,9 +329,9 @@ class ProgressorHandler: ObservableObject {
     }
 
     private func handleWeightCalibrationState(
-        rawWeight: Float,
-        taredWeight: Float,
-        baseline: Float,
+        rawWeight: Double,
+        taredWeight: Double,
+        baseline: Double,
         samples: inout [TimestampedSample],
         isHolding: Bool,
         timestamp: UInt32
@@ -378,7 +378,7 @@ class ProgressorHandler: ObservableObject {
     // MARK: - Target Weight Checking
 
     /// Check if current weight is off target during gripping
-    private func checkOffTarget(rawWeight: Float) {
+    private func checkOffTarget(rawWeight: Double) {
         guard let target = targetWeight else {
             // No target set, reset off-target state
             stopOffTargetTimer()
@@ -433,19 +433,19 @@ class ProgressorHandler: ObservableObject {
 
     // MARK: - Statistics Utilities (delegating to shared implementation)
 
-    func median(_ values: [Float]) -> Float {
+    func median(_ values: [Double]) -> Double {
         StatisticsUtilities.median(values)
     }
 
-    func mean(_ values: [Float]) -> Float {
+    func mean(_ values: [Double]) -> Double {
         StatisticsUtilities.mean(values)
     }
 
-    func standardDeviation(_ values: [Float]) -> Float {
+    func standardDeviation(_ values: [Double]) -> Double {
         StatisticsUtilities.standardDeviation(values)
     }
 
-    func trimmedMedian(_ values: [Float], trimFraction: Float = 0.3) -> Float {
+    func trimmedMedian(_ values: [Double], trimFraction: Double = 0.3) -> Double {
         StatisticsUtilities.trimmedMedian(values, trimFraction: trimFraction)
     }
 }

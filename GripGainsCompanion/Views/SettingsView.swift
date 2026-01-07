@@ -62,7 +62,7 @@ struct SettingsView: View {
     let onRecalibrate: () -> Void
 
     /// Target weight scraped from website (read-only display)
-    let scrapedTargetWeight: Float?
+    let scrapedTargetWeight: Double?
 
     /// Progressor handler for sample filter test (optional, only needed when connected)
     var progressorHandler: ProgressorHandler?
@@ -81,7 +81,7 @@ struct SettingsView: View {
     @AppStorage("enableTargetWeight") private var enableTargetWeight = AppConstants.defaultEnableTargetWeight
     @AppStorage("useManualTarget") private var useManualTarget = AppConstants.defaultUseManualTarget
     @AppStorage("manualTargetWeight") private var manualTargetWeight: Double = AppConstants.defaultManualTargetWeight
-    @AppStorage("weightTolerance") private var weightTolerance: Double = Double(AppConstants.defaultWeightTolerance)
+    @AppStorage("weightTolerance") private var weightTolerance: Double = AppConstants.defaultWeightTolerance
 
     // State for wheel pickers
     @State private var targetWholeNumber: Int = 20
@@ -92,20 +92,20 @@ struct SettingsView: View {
     @AppStorage("enableLiveActivity") private var enableLiveActivity = AppConstants.defaultEnableLiveActivity
     @AppStorage("autoSelectWeight") private var autoSelectWeight = AppConstants.defaultAutoSelectWeight
     @AppStorage("autoSelectFromManual") private var autoSelectFromManual = AppConstants.defaultAutoSelectFromManual
-    @AppStorage("engageThreshold") private var engageThreshold: Double = Double(AppConstants.defaultEngageThreshold)
-    @AppStorage("failThreshold") private var failThreshold: Double = Double(AppConstants.defaultFailThreshold)
+    @AppStorage("engageThreshold") private var engageThreshold: Double = AppConstants.defaultEngageThreshold
+    @AppStorage("failThreshold") private var failThreshold: Double = AppConstants.defaultFailThreshold
     @AppStorage("enablePercentageThresholds") private var enablePercentageThresholds = AppConstants.defaultEnablePercentageThresholds
-    @AppStorage("engagePercentage") private var engagePercentage: Double = Double(AppConstants.defaultEngagePercentage)
-    @AppStorage("disengagePercentage") private var disengagePercentage: Double = Double(AppConstants.defaultDisengagePercentage)
-    @AppStorage("tolerancePercentage") private var tolerancePercentage: Double = Double(AppConstants.defaultTolerancePercentage)
+    @AppStorage("engagePercentage") private var engagePercentage: Double = AppConstants.defaultEngagePercentage
+    @AppStorage("disengagePercentage") private var disengagePercentage: Double = AppConstants.defaultDisengagePercentage
+    @AppStorage("tolerancePercentage") private var tolerancePercentage: Double = AppConstants.defaultTolerancePercentage
 
     // Floor/ceiling bounds for percentage thresholds (stored in kg)
-    @AppStorage("engageFloor") private var engageFloor: Double = Double(AppConstants.defaultEngageFloor)
-    @AppStorage("engageCeiling") private var engageCeiling: Double = Double(AppConstants.defaultEngageCeiling)
-    @AppStorage("disengageFloor") private var disengageFloor: Double = Double(AppConstants.defaultDisengageFloor)
-    @AppStorage("disengageCeiling") private var disengageCeiling: Double = Double(AppConstants.defaultDisengageCeiling)
-    @AppStorage("toleranceFloor") private var toleranceFloor: Double = Double(AppConstants.defaultToleranceFloor)
-    @AppStorage("toleranceCeiling") private var toleranceCeiling: Double = Double(AppConstants.defaultToleranceCeiling)
+    @AppStorage("engageFloor") private var engageFloor: Double = AppConstants.defaultEngageFloor
+    @AppStorage("engageCeiling") private var engageCeiling: Double = AppConstants.defaultEngageCeiling
+    @AppStorage("disengageFloor") private var disengageFloor: Double = AppConstants.defaultDisengageFloor
+    @AppStorage("disengageCeiling") private var disengageCeiling: Double = AppConstants.defaultDisengageCeiling
+    @AppStorage("toleranceFloor") private var toleranceFloor: Double = AppConstants.defaultToleranceFloor
+    @AppStorage("toleranceCeiling") private var toleranceCeiling: Double = AppConstants.defaultToleranceCeiling
 
     // Options for floor/ceiling pickers (in kg)
     private let engageFloorOptions: [Double] = Array(stride(from: 0.0, through: 20.0, by: 0.5))
@@ -116,15 +116,16 @@ struct SettingsView: View {
     private let toleranceCeilingOptions: [Double] = Array(stride(from: 0.0, through: 10.0, by: 0.1))
 
     @State private var manualTargetText: String = "20.00"
+    @State private var showThresholdOptions = false
     @FocusState private var isTextFieldFocused: Bool
 
     // Decimal options (0.05 increments)
     private let decimalOptions = Array(stride(from: 0, through: 95, by: 5))
 
     /// Current effective target weight for percentage calculations (uses manual or scraped based on settings)
-    private var effectiveTargetWeight: Float? {
+    private var effectiveTargetWeight: Double? {
         if useManualTarget {
-            return Float(manualTargetWeight)
+            return manualTargetWeight
         }
         return scrapedTargetWeight
     }
@@ -275,12 +276,25 @@ struct SettingsView: View {
 
                         Toggle("Use Percentage Thresholds", isOn: $enablePercentageThresholds)
                         if enablePercentageThresholds {
-                            Text("Thresholds scale with target weight. Requires target weight to be set.")
+                            Text("Thresholds scale with target weight from Auto or Manual source above")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
+
+                            Button {
+                                withAnimation {
+                                    showThresholdOptions.toggle()
+                                }
+                            } label: {
+                                HStack {
+                                    Text(showThresholdOptions ? "Hide Options" : "Show Options")
+                                    Spacer()
+                                    Image(systemName: showThresholdOptions ? "chevron.up" : "chevron.down")
+                                        .foregroundColor(.secondary)
+                                }
+                            }
                         }
 
-                        if enablePercentageThresholds {
+                        if enablePercentageThresholds && showThresholdOptions {
                             // Engage percentage with bounds
                             VStack(alignment: .leading, spacing: 8) {
                                 HStack {
@@ -369,7 +383,9 @@ struct SettingsView: View {
                             Text("Min/Max bound the calculated threshold. Set to Off to disable.")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
-                        } else {
+                        }
+
+                        if !enablePercentageThresholds {
                             // Fixed kg thresholds (original behavior)
                             HStack {
                                 Text("Engage Threshold")
@@ -594,7 +610,7 @@ struct SettingsView: View {
         enableTargetWeight = AppConstants.defaultEnableTargetWeight
         useManualTarget = AppConstants.defaultUseManualTarget
         manualTargetWeight = AppConstants.defaultManualTargetWeight
-        weightTolerance = Double(AppConstants.defaultWeightTolerance)
+        weightTolerance = AppConstants.defaultWeightTolerance
 
         // Calibration & experimental
         enableCalibration = AppConstants.defaultEnableCalibration
@@ -605,22 +621,22 @@ struct SettingsView: View {
         useKeyboardInput = AppConstants.defaultUseKeyboardInput
 
         // Fixed thresholds
-        engageThreshold = Double(AppConstants.defaultEngageThreshold)
-        failThreshold = Double(AppConstants.defaultFailThreshold)
+        engageThreshold = AppConstants.defaultEngageThreshold
+        failThreshold = AppConstants.defaultFailThreshold
 
         // Percentage thresholds
         enablePercentageThresholds = AppConstants.defaultEnablePercentageThresholds
-        engagePercentage = Double(AppConstants.defaultEngagePercentage)
-        disengagePercentage = Double(AppConstants.defaultDisengagePercentage)
-        tolerancePercentage = Double(AppConstants.defaultTolerancePercentage)
+        engagePercentage = AppConstants.defaultEngagePercentage
+        disengagePercentage = AppConstants.defaultDisengagePercentage
+        tolerancePercentage = AppConstants.defaultTolerancePercentage
 
         // Floor/ceiling bounds
-        engageFloor = Double(AppConstants.defaultEngageFloor)
-        engageCeiling = Double(AppConstants.defaultEngageCeiling)
-        disengageFloor = Double(AppConstants.defaultDisengageFloor)
-        disengageCeiling = Double(AppConstants.defaultDisengageCeiling)
-        toleranceFloor = Double(AppConstants.defaultToleranceFloor)
-        toleranceCeiling = Double(AppConstants.defaultToleranceCeiling)
+        engageFloor = AppConstants.defaultEngageFloor
+        engageCeiling = AppConstants.defaultEngageCeiling
+        disengageFloor = AppConstants.defaultDisengageFloor
+        disengageCeiling = AppConstants.defaultDisengageCeiling
+        toleranceFloor = AppConstants.defaultToleranceFloor
+        toleranceCeiling = AppConstants.defaultToleranceCeiling
 
         // Reinitialize wheel pickers to reflect new values
         initializeWheelPickers()

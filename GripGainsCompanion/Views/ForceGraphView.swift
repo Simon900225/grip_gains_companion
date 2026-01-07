@@ -3,11 +3,11 @@ import Charts
 
 /// Real-time force graph showing recent force history
 struct ForceGraphView: View {
-    let forceHistory: [(timestamp: Date, force: Float)]
+    let forceHistory: [(timestamp: Date, force: Double)]
     let useLbs: Bool
     let windowSeconds: Int  // 0 = entire session
-    let targetWeight: Float?
-    let tolerance: Float?  // Optional tolerance in same units as targetWeight (kg)
+    let targetWeight: Double?
+    let tolerance: Double?  // Optional tolerance in same units as targetWeight (kg)
 
     @Environment(\.colorScheme) private var colorScheme
 
@@ -16,7 +16,7 @@ struct ForceGraphView: View {
     }
 
     /// Filter history to the selected time window
-    private var visibleHistory: [(timestamp: Date, force: Float)] {
+    private var visibleHistory: [(timestamp: Date, force: Double)] {
         guard windowSeconds > 0 else {
             return forceHistory  // Entire session
         }
@@ -25,7 +25,7 @@ struct ForceGraphView: View {
     }
 
     /// Convert force to display units
-    private func displayForce(_ force: Float) -> Double {
+    private func displayForce(_ force: Double) -> Double {
         Double(useLbs ? force * AppConstants.kgToLbs : force)
     }
 
@@ -103,9 +103,9 @@ struct ForceGraphView: View {
 
 #Preview("With data") {
     let now = Date()
-    let history: [(timestamp: Date, force: Float)] = (0..<100).map { i in
+    let history: [(timestamp: Date, force: Double)] = (0..<100).map { i in
         (timestamp: now.addingTimeInterval(Double(i) * 0.1 - 10),
-         force: 20 + Float.random(in: -2...2))
+         force: 20 + Double.random(in: -2...2))
     }
     return ForceGraphView(
         forceHistory: history,

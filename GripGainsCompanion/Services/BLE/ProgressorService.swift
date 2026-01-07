@@ -8,7 +8,7 @@ class ProgressorService: NSObject, CBPeripheralDelegate {
     private var discoveryTimer: Timer?
 
     /// Callback when force samples are received (force value, timestamp in microseconds)
-    var onForceSample: ((Float, UInt32) -> Void)?
+    var onForceSample: ((Double, UInt32) -> Void)?
 
     /// Callback when discovery times out
     var onDiscoveryTimeout: (() -> Void)?
@@ -179,10 +179,11 @@ class ProgressorService: NSObject, CBPeripheralDelegate {
             let weightData = payload[startIndex..<(startIndex + 4)]
             let timeData = payload[(startIndex + 4)..<(startIndex + 8)]
 
-            let weight = weightData.withUnsafeBytes { $0.load(as: Float.self) }
+            // BLE sends 4-byte Float, convert to Double for consistency with rest of codebase
+            let weightFloat = weightData.withUnsafeBytes { $0.load(as: Float.self) }
             let timestamp = timeData.withUnsafeBytes { $0.load(as: UInt32.self) }
 
-            onForceSample?(weight, timestamp)
+            onForceSample?(Double(weightFloat), timestamp)
         }
     }
 }

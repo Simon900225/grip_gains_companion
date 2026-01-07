@@ -269,7 +269,7 @@ enum JavaScriptBridge {
     """
 
     /// Set target weight in the web UI picker (value in kg, converts to lbs if needed)
-    static func setTargetWeightScript(weightKg: Float) -> String {
+    static func setTargetWeightScript(weightKg: Double) -> String {
         """
         (function() {
             const KG_TO_LBS = 2.20462;

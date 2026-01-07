@@ -2,21 +2,21 @@ import SwiftUI
 
 /// Bundles all state needed for the status bar display
 struct StatusBarState {
-    let force: Float
+    let force: Double
     let engaged: Bool
     let calibrating: Bool
     let waitingForSamples: Bool
     let calibrationTimeRemaining: TimeInterval
-    let weightMedian: Float?
+    let weightMedian: Double?
 
     // Target weight state
-    let targetWeight: Float?
+    let targetWeight: Double?
     let isOffTarget: Bool
-    let offTargetDirection: Float?  // positive = too heavy, negative = too light
+    let offTargetDirection: Double?  // positive = too heavy, negative = too light
 
     // Session statistics
-    let sessionMean: Float?
-    let sessionStdDev: Float?
+    let sessionMean: Double?
+    let sessionStdDev: Double?
 
     /// Show weight only when idle (not gripping, calibrating, or connecting)
     var showWeight: Bool {
@@ -37,7 +37,7 @@ struct StatusBarState {
         return .blue
     }
 
-    func forceColor(baseline: Float = 0, isDarkMode: Bool = true) -> Color {
+    func forceColor(baseline: Double = 0, isDarkMode: Bool = true) -> Color {
         if waitingForSamples || calibrating { return .gray }
         if engaged {
             // Show red/orange if off target during gripping

@@ -15,41 +15,41 @@ struct SetStatistics {
     // MARK: - Target Weight
 
     /// Target weight (from the first rep that has one)
-    var targetWeight: Float? {
+    var targetWeight: Double? {
         reps.first(where: { $0.targetWeight != nil })?.targetWeight
     }
 
     // MARK: - Median Statistics
 
     /// Mean of rep medians (for calculating absolute std dev)
-    var medianMean: Float? {
+    var medianMean: Double? {
         let medians = reps.map(\.median)
         guard !medians.isEmpty else { return nil }
-        return medians.reduce(0, +) / Float(medians.count)
+        return medians.reduce(0, +) / Double(medians.count)
     }
 
     /// Standard deviation of rep medians (absolute, in kg)
-    var medianStdDev: Float? {
+    var medianStdDev: Double? {
         let medians = reps.map(\.median)
         guard medians.count > 1, let mean = medianMean else { return nil }
-        let variance = medians.reduce(0) { $0 + pow($1 - mean, 2) } / Float(medians.count - 1)
+        let variance = medians.reduce(0) { $0 + pow($1 - mean, 2) } / Double(medians.count - 1)
         return sqrt(variance)
     }
 
     // MARK: - Deviation from Target Statistics
 
     /// Mean absolute deviation from target (in kg)
-    var meanAbsoluteDeviation: Float? {
+    var meanAbsoluteDeviation: Double? {
         let validDeviations = reps.compactMap(\.absoluteDeviation)
         guard !validDeviations.isEmpty else { return nil }
-        return validDeviations.reduce(0, +) / Float(validDeviations.count)
+        return validDeviations.reduce(0, +) / Double(validDeviations.count)
     }
 
     /// Mean deviation from target across all reps (%)
-    var meanDeviation: Float? {
+    var meanDeviation: Double? {
         let validDeviations = reps.compactMap(\.deviationPercentage)
         guard !validDeviations.isEmpty else { return nil }
-        return validDeviations.reduce(0, +) / Float(validDeviations.count)
+        return validDeviations.reduce(0, +) / Double(validDeviations.count)
     }
 
     /// Whether the summary section has any meaningful data to display

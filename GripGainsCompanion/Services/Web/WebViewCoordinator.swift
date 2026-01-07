@@ -9,7 +9,7 @@ class WebViewCoordinator: NSObject, WKScriptMessageHandler, WKNavigationDelegate
     var onButtonStateChanged: ((Bool) -> Void)?
 
     /// Callback when target weight changes (scraped from website)
-    var onTargetWeightChanged: ((Float?) -> Void)?
+    var onTargetWeightChanged: ((Double?) -> Void)?
 
     /// Callback when target duration changes (scraped from website, in seconds)
     var onTargetDurationChanged: ((Int?) -> Void)?
@@ -18,7 +18,7 @@ class WebViewCoordinator: NSObject, WKScriptMessageHandler, WKNavigationDelegate
     var onRemainingTimeChanged: ((Int?) -> Void)?
 
     /// Callback when available weight options are scraped (weights in display unit, isLbs indicates unit)
-    var onWeightOptionsChanged: (([Float], Bool) -> Void)?
+    var onWeightOptionsChanged: (([Double], Bool) -> Void)?
 
     /// Callback when session info changes (gripper type, side)
     var onSessionInfoChanged: ((String?, String?) -> Void)?
@@ -89,7 +89,7 @@ class WebViewCoordinator: NSObject, WKScriptMessageHandler, WKNavigationDelegate
                 if let dict = message.body as? [String: Any],
                    let weights = dict["weights"] as? [Double],
                    let isLbs = dict["isLbs"] as? Bool {
-                    let floats = weights.map { Float($0) }
+                    let floats = weights.map { Double($0) }
                     self?.onWeightOptionsChanged?(floats, isLbs)
                 } else {
                     self?.onWeightOptionsChanged?([], false)
@@ -122,8 +122,8 @@ class WebViewCoordinator: NSObject, WKScriptMessageHandler, WKNavigationDelegate
         }
     }
 
-    /// Parse weight string like "20.0 kg" or "44 lbs" to Float (always returns kg)
-    func parseWeight(_ string: String) -> Float? {
+    /// Parse weight string like "20.0 kg" or "44 lbs" to Double (always returns kg)
+    func parseWeight(_ string: String) -> Double? {
         let lowercased = string.lowercased()
         let isLbs = lowercased.contains("lbs") || lowercased.contains("lb")
 
@@ -134,7 +134,7 @@ class WebViewCoordinator: NSObject, WKScriptMessageHandler, WKNavigationDelegate
             .replacingOccurrences(of: "kg", with: "")
             .trimmingCharacters(in: .whitespaces)
 
-        guard let value = Float(cleaned) else { return nil }
+        guard let value = Double(cleaned) else { return nil }
 
         // Convert lbs to kg if needed (internal storage is always kg)
         return isLbs ? value / AppConstants.kgToLbs : value
@@ -229,7 +229,7 @@ class WebViewCoordinator: NSObject, WKScriptMessageHandler, WKNavigationDelegate
     }
 
     /// Set target weight in web UI picker (value in kg, auto-converts if web is in lbs)
-    func setTargetWeight(_ weightKg: Float) {
+    func setTargetWeight(_ weightKg: Double) {
         Task { @MainActor in
             await setTargetWeightAsync(weightKg)
         }
@@ -237,7 +237,7 @@ class WebViewCoordinator: NSObject, WKScriptMessageHandler, WKNavigationDelegate
 
     /// Set target weight in web UI picker (async version)
     @MainActor
-    func setTargetWeightAsync(_ weightKg: Float) async {
+    func setTargetWeightAsync(_ weightKg: Double) async {
         do {
             _ = try await webView?.evaluateJavaScript(JavaScriptBridge.setTargetWeightScript(weightKg: weightKg))
         } catch {

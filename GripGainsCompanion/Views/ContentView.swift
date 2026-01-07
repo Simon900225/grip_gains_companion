@@ -13,12 +13,12 @@ struct AutoSelectWeightModifier: ViewModifier {
         content
             .onChange(of: autoSelectFromManual) { _, useManual in
                 if autoSelectWeight, useManual {
-                    webCoordinator.setTargetWeight(Float(manualTargetWeight))
+                    webCoordinator.setTargetWeight(manualTargetWeight)
                 }
             }
             .onChange(of: manualTargetWeight) { _, _ in
                 if autoSelectWeight, autoSelectFromManual {
-                    webCoordinator.setTargetWeight(Float(manualTargetWeight))
+                    webCoordinator.setTargetWeight(manualTargetWeight)
                 }
             }
     }
@@ -27,11 +27,11 @@ struct AutoSelectWeightModifier: ViewModifier {
 // MARK: - Stats Change Modifier
 
 struct StatsChangeModifier: ViewModifier {
-    let sessionMean: Float?
-    let sessionStdDev: Float?
+    let sessionMean: Double?
+    let sessionStdDev: Double?
     let engaged: Bool
-    @Binding var displayedMean: Float?
-    @Binding var displayedStdDev: Float?
+    @Binding var displayedMean: Double?
+    @Binding var displayedStdDev: Double?
     @Binding var statsHideTimer: Timer?
 
     func body(content: Content) -> some View {
@@ -74,13 +74,13 @@ struct PercentageThresholdSyncModifier: ViewModifier {
                 progressorHandler.enablePercentageThresholds = newValue
             }
             .onChange(of: engagePercentage) { _, newValue in
-                progressorHandler.engagePercentage = Float(newValue)
+                progressorHandler.engagePercentage = newValue
             }
             .onChange(of: disengagePercentage) { _, newValue in
-                progressorHandler.disengagePercentage = Float(newValue)
+                progressorHandler.disengagePercentage = newValue
             }
             .onChange(of: tolerancePercentage) { _, newValue in
-                progressorHandler.tolerancePercentage = Float(newValue)
+                progressorHandler.tolerancePercentage = newValue
             }
     }
 }
@@ -95,10 +95,10 @@ struct EngageBoundsSyncModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
             .onChange(of: engageFloor) { _, newValue in
-                progressorHandler.engageFloor = Float(newValue)
+                progressorHandler.engageFloor = newValue
             }
             .onChange(of: engageCeiling) { _, newValue in
-                progressorHandler.engageCeiling = Float(newValue)
+                progressorHandler.engageCeiling = newValue
             }
     }
 }
@@ -113,10 +113,10 @@ struct DisengageBoundsSyncModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
             .onChange(of: disengageFloor) { _, newValue in
-                progressorHandler.disengageFloor = Float(newValue)
+                progressorHandler.disengageFloor = newValue
             }
             .onChange(of: disengageCeiling) { _, newValue in
-                progressorHandler.disengageCeiling = Float(newValue)
+                progressorHandler.disengageCeiling = newValue
             }
     }
 }
@@ -131,10 +131,10 @@ struct ToleranceBoundsSyncModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
             .onChange(of: toleranceFloor) { _, newValue in
-                progressorHandler.toleranceFloor = Float(newValue)
+                progressorHandler.toleranceFloor = newValue
             }
             .onChange(of: toleranceCeiling) { _, newValue in
-                progressorHandler.toleranceCeiling = Float(newValue)
+                progressorHandler.toleranceCeiling = newValue
             }
     }
 }
@@ -151,7 +151,7 @@ struct ContentView: View {
     @State private var skippedDevice = false
     @State private var showSettings = false
     @State private var cancellables = Set<AnyCancellable>()
-    @State private var scrapedTargetWeight: Float?
+    @State private var scrapedTargetWeight: Double?
     @State private var scrapedTargetDuration: Int?
     @State private var scrapedRemainingTime: Int?
     @AppStorage("useLbs") private var useLbs = false
@@ -188,17 +188,17 @@ struct ContentView: View {
     @AppStorage("autoSelectWeight") private var autoSelectWeight = AppConstants.defaultAutoSelectWeight
     @AppStorage("autoSelectFromManual") private var autoSelectFromManual = AppConstants.defaultAutoSelectFromManual
     @State private var dragOffset: CGSize = .zero
-    @State private var displayedMean: Float?
-    @State private var displayedStdDev: Float?
+    @State private var displayedMean: Double?
+    @State private var displayedStdDev: Double?
     @State private var statsHideTimer: Timer?
     @State private var buttonStateTimer: Timer?
     @State private var backgroundedAt: Date?
     @State private var wasGrippingAtBackground: Bool = false
 
     // Weight picker state
-    @State private var availableWeights: [Float] = []
+    @State private var availableWeights: [Double] = []
     @State private var availableWeightsIsLbs: Bool = false
-    @State private var suggestedWeightKg: Float? = nil  // Suggested weight in kg
+    @State private var suggestedWeightKg: Double? = nil  // Suggested weight in kg
     @State private var weightControlDragOffset: CGSize = .zero
     @AppStorage("weightControlX") private var weightControlX: Double = -1
     @AppStorage("weightControlY") private var weightControlY: Double = -1
@@ -335,7 +335,7 @@ struct ContentView: View {
             useLbs: useLbs,
             windowSeconds: forceGraphWindow,
             targetWeight: effectiveTargetWeight,
-            tolerance: Float(weightTolerance)
+            tolerance: weightTolerance
         )
     }
 
@@ -420,7 +420,7 @@ struct ContentView: View {
                 updateTargetWeight()
                 // Update floating control when manual target changes
                 if autoSelectWeight && autoSelectFromManual {
-                    suggestedWeightKg = Float(newValue)
+                    suggestedWeightKg = newValue
                 }
             }
             .onChange(of: autoSelectFromManual) { _, useManual in
@@ -431,7 +431,7 @@ struct ContentView: View {
                     }
                     // Initialize floating control from manual target
                     if autoSelectWeight {
-                        suggestedWeightKg = Float(manualTargetWeight)
+                        suggestedWeightKg = manualTargetWeight
                     }
                 } else {
                     // Disable manual target when measured mode is selected
@@ -475,16 +475,16 @@ struct ContentView: View {
                 }
             }
             .onChange(of: weightTolerance) { _, newValue in
-                progressorHandler.weightTolerance = Float(newValue)
+                progressorHandler.weightTolerance = newValue
             }
             .onChange(of: enableCalibration) { _, newValue in
                 progressorHandler.enableCalibration = newValue
             }
             .onChange(of: engageThreshold) { _, newValue in
-                progressorHandler.engageThreshold = Float(newValue)
+                progressorHandler.engageThreshold = newValue
             }
             .onChange(of: failThreshold) { _, newValue in
-                progressorHandler.failThreshold = Float(newValue)
+                progressorHandler.failThreshold = newValue
             }
             .modifier(PercentageThresholdSyncModifier(
                 enablePercentageThresholds: enablePercentageThresholds,
@@ -513,14 +513,14 @@ struct ContentView: View {
     // MARK: - Target Weight
 
     /// The effective target weight to use (manual or scraped), or nil if disabled
-    private var effectiveTargetWeight: Float? {
+    private var effectiveTargetWeight: Double? {
         guard enableTargetWeight else { return nil }
         // When auto-select is enabled, always use scraped value (what's in web UI)
         if autoSelectWeight {
             return scrapedTargetWeight
         }
         if useManualTarget {
-            return Float(manualTargetWeight)
+            return manualTargetWeight
         }
         return scrapedTargetWeight
     }
@@ -528,12 +528,12 @@ struct ContentView: View {
     // MARK: - Statistics Display
 
     /// The mean to display (respects showGripStats setting)
-    private var effectiveSessionMean: Float? {
+    private var effectiveSessionMean: Double? {
         showGripStats ? displayedMean : nil
     }
 
     /// The std dev to display (respects showGripStats setting)
-    private var effectiveSessionStdDev: Float? {
+    private var effectiveSessionStdDev: Double? {
         showGripStats ? displayedStdDev : nil
     }
 
@@ -655,7 +655,7 @@ struct ContentView: View {
     // MARK: - Weight Picker Functions
 
     /// Step size from scraped weights (difference between first two options)
-    private var weightStepSize: Float {
+    private var weightStepSize: Double {
         guard availableWeights.count >= 2 else { return 0.5 }
         let stepInDisplayUnit = availableWeights[1] - availableWeights[0]
         return availableWeightsIsLbs ? stepInDisplayUnit / AppConstants.kgToLbs : stepInDisplayUnit
@@ -820,22 +820,22 @@ struct ContentView: View {
 
         // Initialize target weight and tolerance
         updateTargetWeight()
-        progressorHandler.weightTolerance = Float(weightTolerance)
+        progressorHandler.weightTolerance = weightTolerance
 
         // Initialize grip detection settings
         progressorHandler.enableCalibration = enableCalibration
-        progressorHandler.engageThreshold = Float(engageThreshold)
-        progressorHandler.failThreshold = Float(failThreshold)
+        progressorHandler.engageThreshold = engageThreshold
+        progressorHandler.failThreshold = failThreshold
         progressorHandler.enablePercentageThresholds = enablePercentageThresholds
-        progressorHandler.engagePercentage = Float(engagePercentage)
-        progressorHandler.disengagePercentage = Float(disengagePercentage)
-        progressorHandler.tolerancePercentage = Float(tolerancePercentage)
-        progressorHandler.engageFloor = Float(engageFloor)
-        progressorHandler.engageCeiling = Float(engageCeiling)
-        progressorHandler.disengageFloor = Float(disengageFloor)
-        progressorHandler.disengageCeiling = Float(disengageCeiling)
-        progressorHandler.toleranceFloor = Float(toleranceFloor)
-        progressorHandler.toleranceCeiling = Float(toleranceCeiling)
+        progressorHandler.engagePercentage = engagePercentage
+        progressorHandler.disengagePercentage = disengagePercentage
+        progressorHandler.tolerancePercentage = tolerancePercentage
+        progressorHandler.engageFloor = engageFloor
+        progressorHandler.engageCeiling = engageCeiling
+        progressorHandler.disengageFloor = disengageFloor
+        progressorHandler.disengageCeiling = disengageCeiling
+        progressorHandler.toleranceFloor = toleranceFloor
+        progressorHandler.toleranceCeiling = toleranceCeiling
 
         // Periodic button state polling as backup (only in idle state)
         buttonStateTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in

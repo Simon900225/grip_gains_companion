@@ -61,7 +61,7 @@ class BluetoothManager: NSObject, ObservableObject {
     var backgroundDisconnectTimer: Timer?
 
     /// Callback when force samples are received (force value, timestamp in microseconds)
-    var onForceSample: ((Float, UInt32) -> Void)?
+    var onForceSample: ((Double, UInt32) -> Void)?
 
     override init() {
         super.init()

@@ -4,41 +4,41 @@ import CoreBluetooth
 /// Configuration constants ported from Python config.py
 struct AppConstants {
     // MARK: - Thresholds (kg)
-    static let engageThreshold: Float = 3.0
-    static let failThreshold: Float = 1.0
+    static let engageThreshold: Double = 3.0
+    static let failThreshold: Double = 1.0
     static let calibrationDuration: TimeInterval = 5.0
 
     // MARK: - Grip Detection Defaults (kg)
-    static let defaultEngageThreshold: Float = 3.0
-    static let defaultFailThreshold: Float = 1.0
-    static let minGripThreshold: Float = 0.5
-    static let maxEngageThreshold: Float = 10.0
-    static let maxFailThreshold: Float = 5.0
+    static let defaultEngageThreshold: Double = 3.0
+    static let defaultFailThreshold: Double = 1.0
+    static let minGripThreshold: Double = 0.5
+    static let maxEngageThreshold: Double = 10.0
+    static let maxFailThreshold: Double = 5.0
 
     // MARK: - Target Weight
-    static let defaultWeightTolerance: Float = 0.5  // kg
-    static let minWeightTolerance: Float = 0.1      // kg
-    static let maxWeightTolerance: Float = 1.0      // kg
+    static let defaultWeightTolerance: Double = 0.5  // kg
+    static let minWeightTolerance: Double = 0.1      // kg
+    static let maxWeightTolerance: Double = 1.0      // kg
     static let offTargetFeedbackInterval: TimeInterval = 1.0  // seconds (throttle)
 
     // MARK: - Percentage-Based Thresholds
     static let defaultEnablePercentageThresholds: Bool = true
-    static let defaultEngagePercentage: Float = 0.50      // 50% of target weight
-    static let defaultDisengagePercentage: Float = 0.20   // 20% of target weight
-    static let defaultTolerancePercentage: Float = 0.05   // 5% of target weight
-    static let minPercentage: Float = 0.05                // 5% minimum
-    static let maxEngagePercentage: Float = 0.90          // 90% maximum for engage
-    static let maxDisengagePercentage: Float = 0.50       // 50% maximum for disengage
+    static let defaultEngagePercentage: Double = 0.50      // 50% of target weight
+    static let defaultDisengagePercentage: Double = 0.20   // 20% of target weight
+    static let defaultTolerancePercentage: Double = 0.05   // 5% of target weight
+    static let minPercentage: Double = 0.05                // 5% minimum
+    static let maxEngagePercentage: Double = 0.90          // 90% maximum for engage
+    static let maxDisengagePercentage: Double = 0.50       // 50% maximum for disengage
 
     // MARK: - Percentage Threshold Bounds (kg)
     // Floor = minimum absolute value (0 = disabled, use pure percentage)
     // Ceiling = maximum absolute value (0 = disabled, use pure percentage)
-    static let defaultEngageFloor: Float = 3.0
-    static let defaultEngageCeiling: Float = 0.0
-    static let defaultDisengageFloor: Float = 2.0
-    static let defaultDisengageCeiling: Float = 0.0
-    static let defaultToleranceFloor: Float = 0.3
-    static let defaultToleranceCeiling: Float = 1.5
+    static let defaultEngageFloor: Double = 3.0
+    static let defaultEngageCeiling: Double = 0.0
+    static let defaultDisengageFloor: Double = 2.0
+    static let defaultDisengageCeiling: Double = 0.0
+    static let defaultToleranceFloor: Double = 0.3
+    static let defaultToleranceCeiling: Double = 1.5
 
     // MARK: - UI Defaults
     static let defaultEnableHaptics: Bool = true
@@ -86,7 +86,7 @@ struct AppConstants {
     static let csvFileName = "grip_log.csv"
 
     // MARK: - Unit Conversion
-    static let kgToLbs: Float = 2.20462
+    static let kgToLbs: Double = 2.20462
 }
 
 // MARK: - RSSI Signal Thresholds

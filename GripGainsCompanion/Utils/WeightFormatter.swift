@@ -1,7 +1,7 @@
 import Foundation
 
 enum WeightFormatter {
-    static func format(_ kg: Float, useLbs: Bool, includeUnit: Bool = true, decimals: Int = 1) -> String {
+    static func format(_ kg: Double, useLbs: Bool, includeUnit: Bool = true, decimals: Int = 1) -> String {
         var displayValue = useLbs ? kg * AppConstants.kgToLbs : kg
         if displayValue > -0.1 && displayValue < 0.0 {
             displayValue = 0.0

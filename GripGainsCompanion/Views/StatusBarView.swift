@@ -12,17 +12,17 @@ struct StatusBarView: View {
     @Environment(\.colorScheme) private var colorScheme
 
     init(
-        force: Float,
+        force: Double,
         engaged: Bool,
         calibrating: Bool,
         waitingForSamples: Bool,
         calibrationTimeRemaining: TimeInterval,
-        weightMedian: Float?,
-        targetWeight: Float? = nil,
+        weightMedian: Double?,
+        targetWeight: Double? = nil,
         isOffTarget: Bool = false,
-        offTargetDirection: Float? = nil,
-        sessionMean: Float? = nil,
-        sessionStdDev: Float? = nil,
+        offTargetDirection: Double? = nil,
+        sessionMean: Double? = nil,
+        sessionStdDev: Double? = nil,
         useLbs: Bool,
         theme: ForceBarTheme = .system,
         expanded: Bool = false,
