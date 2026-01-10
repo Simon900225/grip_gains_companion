@@ -64,8 +64,8 @@ struct SetReviewSheet: View {
             if let absDev = stats.meanAbsoluteDeviation, let pctDev = stats.meanDeviation {
                 statRow("Avg. difference of Median from Target", value: formatDeviation(absolute: absDev, percentage: pctDev), bold: true)
             }
-            if let stdDev = stats.medianStdDev {
-                statRow("Standard Deviation", value: String(format: "%.2f", useLbs ? stdDev * AppConstants.kgToLbs : stdDev))
+            if let stdDev = stats.averageStdDev {
+                statRow("Avg. Standard Deviation", value: String(format: "%.2f", useLbs ? stdDev * AppConstants.kgToLbs : stdDev))
             }
             if let target = stats.targetWeight {
                 statRow("Target", value: WeightFormatter.format(target, useLbs: useLbs))

@@ -18,8 +18,8 @@ final class SetStatisticsTests: XCTestCase {
             RepResult(timestamp: Date(), duration: 7.0, samples: Array(repeating: 20.0, count: 70), targetWeight: nil)
         ])
 
-        // No target, single rep (no std dev) → no summary data
-        XCTAssertFalse(stats.hasSummaryData)
+        // No target, but single rep has avgStdDev → has summary data
+        XCTAssertTrue(stats.hasSummaryData)
     }
 
     func testHasSummaryDataWithMultipleRepsNoTarget() {
@@ -68,5 +68,30 @@ final class SetStatisticsTests: XCTestCase {
         ])
 
         XCTAssertNil(stats.meanAbsoluteDeviation)
+    }
+
+    // MARK: - averageStdDev
+
+    func testAverageStdDevWithEmptyReps() {
+        let stats = SetStatistics(reps: [])
+        XCTAssertNil(stats.averageStdDev)
+    }
+
+    func testAverageStdDevWithIdenticalSamples() {
+        // All samples identical → stdDev = 0
+        let stats = SetStatistics(reps: [
+            RepResult(timestamp: Date(), duration: 7.0, samples: Array(repeating: 20.0, count: 70), targetWeight: nil)
+        ])
+        XCTAssertEqual(stats.averageStdDev!, 0.0, accuracy: 0.001)
+    }
+
+    func testAverageStdDevAveragesRepStdDevs() {
+        // Create reps and verify averageStdDev equals mean of individual stdDevs
+        let rep1 = RepResult(timestamp: Date(), duration: 7.0, samples: Array(repeating: 20.0, count: 70), targetWeight: nil)
+        let rep2 = RepResult(timestamp: Date(), duration: 7.0, samples: Array(repeating: 25.0, count: 70), targetWeight: nil)
+        let stats = SetStatistics(reps: [rep1, rep2])
+
+        let expectedAvg = (rep1.stdDev + rep2.stdDev) / 2.0
+        XCTAssertEqual(stats.averageStdDev!, expectedAvg, accuracy: 0.001)
     }
 }

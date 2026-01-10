@@ -28,12 +28,11 @@ struct SetStatistics {
         return medians.reduce(0, +) / Double(medians.count)
     }
 
-    /// Standard deviation of rep medians (absolute, in kg)
-    var medianStdDev: Double? {
-        let medians = reps.map(\.median)
-        guard medians.count > 1, let mean = medianMean else { return nil }
-        let variance = medians.reduce(0) { $0 + pow($1 - mean, 2) } / Double(medians.count - 1)
-        return sqrt(variance)
+    /// Average of rep standard deviations (mean force stability across the set)
+    var averageStdDev: Double? {
+        let stdDevs = reps.map(\.stdDev)
+        guard !stdDevs.isEmpty else { return nil }
+        return stdDevs.reduce(0, +) / Double(stdDevs.count)
     }
 
     // MARK: - Deviation from Target Statistics
@@ -54,6 +53,6 @@ struct SetStatistics {
 
     /// Whether the summary section has any meaningful data to display
     var hasSummaryData: Bool {
-        meanAbsoluteDeviation != nil || medianStdDev != nil || targetWeight != nil
+        meanAbsoluteDeviation != nil || averageStdDev != nil || targetWeight != nil
     }
 }

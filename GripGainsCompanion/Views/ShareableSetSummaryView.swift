@@ -23,8 +23,8 @@ struct ShareableSetSummaryView: View {
                     if let absDev = stats.meanAbsoluteDeviation, let pctDev = stats.meanDeviation {
                         statRow("Avg. Deviation from Target", value: formatDeviation(absolute: absDev, percentage: pctDev), bold: true)
                     }
-                    if let stdDev = stats.medianStdDev {
-                        statRow("Standard Deviation", value: String(format: "%.2f %@", useLbs ? stdDev * AppConstants.kgToLbs : stdDev, useLbs ? "lbs" : "kg"))
+                    if let stdDev = stats.averageStdDev {
+                        statRow("Avg. Standard Deviation", value: String(format: "%.2f %@", useLbs ? stdDev * AppConstants.kgToLbs : stdDev, useLbs ? "lbs" : "kg"))
                     }
                     if let target = stats.targetWeight {
                         statRow("Target", value: WeightFormatter.format(target, useLbs: useLbs))
@@ -78,9 +78,14 @@ struct ShareableSetSummaryView: View {
             VStack(spacing: 8) {
                 statRow("Duration", value: String(format: "%.1fs", rep.duration))
                 statRow("Median", value: WeightFormatter.format(rep.median, useLbs: useLbs))
+                statRow("Average", value: WeightFormatter.format(rep.mean, useLbs: useLbs))
+                statRow("Standard Deviation", value: String(format: "%.2f", useLbs ? rep.stdDev * AppConstants.kgToLbs : rep.stdDev))
                 if let absDev = rep.absoluteDeviation, let pctDev = rep.deviationPercentage {
-                    statRow("Difference from Target", value: formatDeviation(absolute: absDev, percentage: pctDev))
+                    statRow("Difference of Median from Target", value: formatDeviation(absolute: absDev, percentage: pctDev))
                 }
+
+                // Percentiles grid
+                percentilesGrid(rep: rep)
             }
         }
     }
@@ -101,5 +106,42 @@ struct ShareableSetSummaryView: View {
         let displayAbs = useLbs ? absolute * AppConstants.kgToLbs : absolute
         let unit = useLbs ? "lbs" : "kg"
         return String(format: "%+.2f %@ (%+.1f%%)", displayAbs, unit, percentage)
+    }
+
+    /// Compact horizontal grid showing percentile distribution
+    private func percentilesGrid(rep: RepResult) -> some View {
+        let percentiles: [(String, Double)] = [
+            ("P1", rep.p1),
+            ("P5", rep.p5),
+            ("P10", rep.p10),
+            ("P25", rep.q1),
+            ("P75", rep.q3),
+            ("P90", rep.p90),
+            ("P95", rep.p95),
+            ("P99", rep.p99)
+        ]
+
+        return VStack(spacing: 4) {
+            Text("Percentiles")
+                .foregroundColor(.gray)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            HStack(spacing: 0) {
+                ForEach(percentiles, id: \.0) { label, _ in
+                    Text(label)
+                        .frame(maxWidth: .infinity)
+                }
+            }
+            .foregroundColor(.gray)
+
+            HStack(spacing: 0) {
+                ForEach(percentiles, id: \.0) { _, value in
+                    Text(WeightFormatter.format(value, useLbs: useLbs, includeUnit: false))
+                        .frame(maxWidth: .infinity)
+                }
+            }
+            .foregroundColor(.black)
+        }
+        .font(.system(size: 14))
     }
 }
