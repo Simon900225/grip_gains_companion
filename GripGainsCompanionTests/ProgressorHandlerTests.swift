@@ -26,7 +26,7 @@ final class ProgressorHandlerTests: XCTestCase {
     private var testTimestamp: UInt32 = 0
 
     /// Process a sample with auto-incrementing timestamp (~80Hz = 12500 microseconds between samples)
-    private func processTestSample(_ weight: Float) {
+    private func processTestSample(_ weight: Double) {
         testTimestamp += 12500
         handler.processSample(weight, timestamp: testTimestamp)
     }
@@ -94,7 +94,7 @@ final class ProgressorHandlerTests: XCTestCase {
     func testTrimmedMedianWithTenSamples() {
         // 10 samples: trim 3 from start, 3 from end, median of middle 4
         // Simulates: pickup [5, 10, 15], stable [20, 20, 20, 20], release [15, 10, 5]
-        let samples: [Float] = [5, 10, 15, 20, 20, 20, 20, 15, 10, 5]
+        let samples: [Double] = [5, 10, 15, 20, 20, 20, 20, 15, 10, 5]
         let result = handler.trimmedMedian(samples)
         // Middle 4 samples: [20, 20, 20, 20] -> median = 20
         XCTAssertEqual(result, 20.0)
@@ -102,7 +102,7 @@ final class ProgressorHandlerTests: XCTestCase {
 
     func testTrimmedMedianFallbackForFewSamples() {
         // Less than 5 samples: should fallback to regular median
-        let samples: [Float] = [5, 20, 10]
+        let samples: [Double] = [5, 20, 10]
         let result = handler.trimmedMedian(samples)
         // Regular median of [5, 10, 20] = 10
         XCTAssertEqual(result, 10.0)
@@ -110,7 +110,7 @@ final class ProgressorHandlerTests: XCTestCase {
 
     func testTrimmedMedianExactlyFiveSamples() {
         // 5 samples: trim 1 from each end, median of middle 3
-        let samples: [Float] = [5, 20, 20, 20, 5]
+        let samples: [Double] = [5, 20, 20, 20, 5]
         let result = handler.trimmedMedian(samples)
         // Middle 3 samples: [20, 20, 20] -> median = 20
         XCTAssertEqual(result, 20.0)
@@ -121,18 +121,18 @@ final class ProgressorHandlerTests: XCTestCase {
         // Pickup: ramping up 0 -> 20kg
         // Hold: stable around 20kg
         // Release: ramping down 20kg -> 0
-        var samples: [Float] = []
+        var samples: [Double] = []
         // Pickup phase (30 samples ramping up)
         for i in 0..<30 {
-            samples.append(Float(i) * 20.0 / 30.0)
+            samples.append(Double(i) * 20.0 / 30.0)
         }
         // Stable phase (40 samples at ~20kg with slight variation)
         for _ in 0..<40 {
-            samples.append(20.0 + Float.random(in: -0.5...0.5))
+            samples.append(20.0 + Double.random(in: -0.5...0.5))
         }
         // Release phase (30 samples ramping down)
         for i in 0..<30 {
-            samples.append(20.0 - Float(i) * 20.0 / 30.0)
+            samples.append(20.0 - Double(i) * 20.0 / 30.0)
         }
 
         let result = handler.trimmedMedian(samples)
@@ -142,7 +142,7 @@ final class ProgressorHandlerTests: XCTestCase {
 
     func testTrimmedMedianVsRegularMedian() {
         // Shows that trimmed median gives better result for transient data
-        let samples: [Float] = [0, 5, 10, 20, 20, 20, 20, 10, 5, 0]
+        let samples: [Double] = [0, 5, 10, 20, 20, 20, 20, 10, 5, 0]
         let regularMedian = handler.median(samples)
         let trimmedMedian = handler.trimmedMedian(samples)
 
@@ -262,8 +262,8 @@ final class ProgressorHandlerTests: XCTestCase {
 
     func testBaselineCalculationFormula() {
         // Test that mean is calculated correctly (same formula used for baseline)
-        let samples: [Float] = [1.0, 2.0, 3.0, 4.0, 5.0]
-        let expectedBaseline = samples.reduce(0, +) / Float(samples.count) // 3.0
+        let samples: [Double] = [1.0, 2.0, 3.0, 4.0, 5.0]
+        let expectedBaseline = samples.reduce(0, +) / Double(samples.count) // 3.0
 
         XCTAssertEqual(handler.mean(samples), expectedBaseline)
         XCTAssertEqual(handler.mean(samples), 3.0)
@@ -273,9 +273,9 @@ final class ProgressorHandlerTests: XCTestCase {
 
     func testOffTargetDifferenceCalculation() {
         // Test the formula: difference = rawWeight - target
-        let rawWeight: Float = 11.0
-        let target: Float = 10.0
-        let tolerance: Float = 0.5
+        let rawWeight: Double = 11.0
+        let target: Double = 10.0
+        let tolerance: Double = 0.5
 
         let difference = rawWeight - target
         XCTAssertEqual(difference, 1.0)
@@ -283,9 +283,9 @@ final class ProgressorHandlerTests: XCTestCase {
     }
 
     func testOnTargetWithinTolerance() {
-        let rawWeight: Float = 10.3
-        let target: Float = 10.0
-        let tolerance: Float = 0.5
+        let rawWeight: Double = 10.3
+        let target: Double = 10.0
+        let tolerance: Double = 0.5
 
         let difference = rawWeight - target
         XCTAssertEqual(difference, 0.3, accuracy: 0.001)
@@ -293,9 +293,9 @@ final class ProgressorHandlerTests: XCTestCase {
     }
 
     func testOffTargetTooLightCalculation() {
-        let rawWeight: Float = 9.0
-        let target: Float = 10.0
-        let tolerance: Float = 0.5
+        let rawWeight: Double = 9.0
+        let target: Double = 10.0
+        let tolerance: Double = 0.5
 
         let difference = rawWeight - target
         XCTAssertEqual(difference, -1.0)
@@ -304,9 +304,9 @@ final class ProgressorHandlerTests: XCTestCase {
     }
 
     func testOffTargetTooHeavyCalculation() {
-        let rawWeight: Float = 11.0
-        let target: Float = 10.0
-        let tolerance: Float = 0.5
+        let rawWeight: Double = 11.0
+        let target: Double = 10.0
+        let tolerance: Double = 0.5
 
         let difference = rawWeight - target
         XCTAssertEqual(difference, 1.0)
@@ -315,9 +315,9 @@ final class ProgressorHandlerTests: XCTestCase {
     }
 
     func testAtToleranceBoundary() {
-        let rawWeight: Float = 10.5
-        let target: Float = 10.0
-        let tolerance: Float = 0.5
+        let rawWeight: Double = 10.5
+        let target: Double = 10.0
+        let tolerance: Double = 0.5
 
         let difference = rawWeight - target
         XCTAssertEqual(difference, 0.5)
@@ -325,9 +325,9 @@ final class ProgressorHandlerTests: XCTestCase {
     }
 
     func testJustUnderToleranceBoundary() {
-        let rawWeight: Float = 10.49
-        let target: Float = 10.0
-        let tolerance: Float = 0.5
+        let rawWeight: Double = 10.49
+        let target: Double = 10.0
+        let tolerance: Double = 0.5
 
         let difference = rawWeight - target
         XCTAssertEqual(difference, 0.49, accuracy: 0.001)
@@ -395,7 +395,7 @@ final class ProgressorHandlerTests: XCTestCase {
         handler.canEngage = true
 
         // Engage and collect samples - these ARE the raw values stored
-        let rawSamples: [Float] = [15.0, 16.0, 17.0]
+        let rawSamples: [Double] = [15.0, 16.0, 17.0]
 
         for sample in rawSamples {
             processTestSample(sample)
@@ -422,7 +422,7 @@ final class ProgressorHandlerTests: XCTestCase {
         setupIdleStateWithZeroBaseline()
 
         // Process a sample - should store raw weight in history
-        let rawWeight: Float = 15.0
+        let rawWeight: Double = 15.0
         processTestSample(rawWeight)
         waitForMainQueue()
 
@@ -439,7 +439,7 @@ final class ProgressorHandlerTests: XCTestCase {
         setupIdleStateWithZeroBaseline()
 
         // Process a sample
-        let rawWeight: Float = 12.0
+        let rawWeight: Double = 12.0
         processTestSample(rawWeight)
         waitForMainQueue()
 
@@ -724,7 +724,7 @@ final class ProgressorHandlerTests: XCTestCase {
 
         // Now engage and collect samples
         handler.canEngage = true
-        let rawSamples: [Float] = [15.0, 16.0, 17.0]  // All above engage threshold (baseline + 3.0 = 8.0)
+        let rawSamples: [Double] = [15.0, 16.0, 17.0]  // All above engage threshold (baseline + 3.0 = 8.0)
 
         for sample in rawSamples {
             processTestSample(sample)
@@ -786,10 +786,10 @@ final class ProgressorHandlerTests: XCTestCase {
 
     /// Helper to set up handler with percentage thresholds enabled (pure percentage, no floor/ceiling)
     private func setupWithPercentageThresholds(
-        target: Float,
-        engage: Float = 0.50,
-        disengage: Float = 0.20,
-        tolerance: Float = 0.05
+        target: Double,
+        engage: Double = 0.50,
+        disengage: Double = 0.20,
+        tolerance: Double = 0.05
     ) {
         handler.enablePercentageThresholds = true
         handler.targetWeight = target
@@ -1224,16 +1224,16 @@ final class ProgressorHandlerTests: XCTestCase {
 
     /// Helper to set up handler with percentage thresholds and custom bounds
     private func setupWithPercentageThresholdsAndBounds(
-        target: Float,
-        engage: Float = 0.50,
-        disengage: Float = 0.20,
-        tolerance: Float = 0.05,
-        engageFloor: Float = AppConstants.defaultEngageFloor,
-        engageCeiling: Float = AppConstants.defaultEngageCeiling,
-        disengageFloor: Float = AppConstants.defaultDisengageFloor,
-        disengageCeiling: Float = AppConstants.defaultDisengageCeiling,
-        toleranceFloor: Float = AppConstants.defaultToleranceFloor,
-        toleranceCeiling: Float = AppConstants.defaultToleranceCeiling
+        target: Double,
+        engage: Double = 0.50,
+        disengage: Double = 0.20,
+        tolerance: Double = 0.05,
+        engageFloor: Double = AppConstants.defaultEngageFloor,
+        engageCeiling: Double = AppConstants.defaultEngageCeiling,
+        disengageFloor: Double = AppConstants.defaultDisengageFloor,
+        disengageCeiling: Double = AppConstants.defaultDisengageCeiling,
+        toleranceFloor: Double = AppConstants.defaultToleranceFloor,
+        toleranceCeiling: Double = AppConstants.defaultToleranceCeiling
     ) {
         handler.enablePercentageThresholds = true
         handler.targetWeight = target

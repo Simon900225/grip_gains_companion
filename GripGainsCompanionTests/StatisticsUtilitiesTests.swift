@@ -56,7 +56,7 @@ final class StatisticsUtilitiesTests: XCTestCase {
         // [2, 4, 4, 4, 5, 5, 7, 9] mean = 5
         // variance = sum((x-5)^2) / (8-1) = (9+1+1+1+0+0+4+16) / 7 = 32/7 ≈ 4.571
         // stdDev ≈ 2.138
-        let values: [Float] = [2, 4, 4, 4, 5, 5, 7, 9]
+        let values: [Double] = [2, 4, 4, 4, 5, 5, 7, 9]
         let result = StatisticsUtilities.standardDeviation(values)
         XCTAssertEqual(result, 2.138, accuracy: 0.001)
     }
@@ -81,14 +81,14 @@ final class StatisticsUtilitiesTests: XCTestCase {
         // [2, 4, 4, 4, 5, 5, 7, 9] mean = 5
         // variance = sum((x-5)^2) / 8 = 32/8 = 4
         // stdDev = 2.0
-        let values: [Float] = [2, 4, 4, 4, 5, 5, 7, 9]
+        let values: [Double] = [2, 4, 4, 4, 5, 5, 7, 9]
         let result = StatisticsUtilities.populationStandardDeviation(values)
         XCTAssertEqual(result, 2.0, accuracy: 0.001)
     }
 
     func testPopulationVsSampleStandardDeviation() {
         // Population should be smaller than sample for same data
-        let values: [Float] = [1, 2, 3, 4, 5]
+        let values: [Double] = [1, 2, 3, 4, 5]
         let pop = StatisticsUtilities.populationStandardDeviation(values)
         let sample = StatisticsUtilities.standardDeviation(values)
         XCTAssertLessThan(pop, sample)
@@ -137,7 +137,7 @@ final class StatisticsUtilitiesTests: XCTestCase {
         // Original: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
         // Trimmed: [3, 4, 5, 6] (indices 3..<7)
         // Median of [3, 4, 5, 6] = 4.5
-        let values: [Float] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+        let values: [Double] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
         XCTAssertEqual(StatisticsUtilities.trimmedMedian(values), 4.5)
     }
 
@@ -146,7 +146,7 @@ final class StatisticsUtilitiesTests: XCTestCase {
         // Original: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
         // Trimmed: [1, 2, 3, 4, 5, 6, 7, 8] (indices 1..<9)
         // Median of [1,2,3,4,5,6,7,8] = 4.5
-        let values: [Float] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+        let values: [Double] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
         XCTAssertEqual(StatisticsUtilities.trimmedMedian(values, trimFraction: 0.1), 4.5)
     }
 }
