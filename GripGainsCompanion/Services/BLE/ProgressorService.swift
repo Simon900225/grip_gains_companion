@@ -54,7 +54,7 @@ class ProgressorService: NSObject, CBPeripheralDelegate {
             return
         }
         Log.ble.info("Sending start weight command...")
-        peripheral.writeValue(AppConstants.startWeightCommand, for: writeChar, type: .withResponse)
+        peripheral.writeValue(AppConstants.progressorStartWeightCommand, for: writeChar, type: .withResponse)
     }
 
     // MARK: - CBPeripheralDelegate
@@ -76,7 +76,7 @@ class ProgressorService: NSObject, CBPeripheralDelegate {
             if service.uuid == AppConstants.progressorServiceUUID {
                 Log.ble.info("Found Progressor service, discovering characteristics...")
                 peripheral.discoverCharacteristics(
-                    [AppConstants.notifyCharacteristicUUID, AppConstants.writeCharacteristicUUID],
+                    [AppConstants.progressorNotifyCharacteristicUUID, AppConstants.progressorWriteCharacteristicUUID],
                     for: service
                 )
             }
@@ -100,12 +100,12 @@ class ProgressorService: NSObject, CBPeripheralDelegate {
 
         for characteristic in characteristics {
             switch characteristic.uuid {
-            case AppConstants.notifyCharacteristicUUID:
+            case AppConstants.progressorNotifyCharacteristicUUID:
                 Log.ble.info("Found notify characteristic, enabling notifications...")
                 notifyCharacteristic = characteristic
                 peripheral.setNotifyValue(true, for: characteristic)
 
-            case AppConstants.writeCharacteristicUUID:
+            case AppConstants.progressorWriteCharacteristicUUID:
                 Log.ble.info("Found write characteristic")
                 writeCharacteristic = characteristic
                 // Start weight measurement once we have the write characteristic
@@ -125,7 +125,7 @@ class ProgressorService: NSObject, CBPeripheralDelegate {
             return
         }
 
-        guard characteristic.uuid == AppConstants.notifyCharacteristicUUID,
+        guard characteristic.uuid == AppConstants.progressorNotifyCharacteristicUUID,
               let data = characteristic.value else {
             return
         }
@@ -171,7 +171,7 @@ class ProgressorService: NSObject, CBPeripheralDelegate {
 
         // Parse ALL samples from notification (Tindeq batches ~16 samples per notification)
         // Each sample: 4-byte float (weight) + 4-byte uint32 (microseconds) = 8 bytes
-        let sampleSize = AppConstants.sampleSize  // 8 bytes
+        let sampleSize = AppConstants.progressorSampleSize  // 8 bytes
         let payload = data.dropFirst(2)  // Skip packet type and count byte
 
         for offset in stride(from: 0, to: payload.count - sampleSize + 1, by: sampleSize) {

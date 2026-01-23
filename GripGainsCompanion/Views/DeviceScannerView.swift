@@ -2,8 +2,10 @@ import SwiftUI
 
 struct DeviceScannerView: View {
     @ObservedObject var bluetoothManager: BluetoothManager
-    let onDeviceSelected: (ProgressorDevice) -> Void
+    let onDeviceSelected: (ForceDevice) -> Void
     let onSkipDevice: () -> Void
+
+    @State private var showDeviceTypePicker = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -11,7 +13,18 @@ struct DeviceScannerView: View {
             Divider()
             deviceListSection
             Spacer()
+            changeDeviceButton
             skipButton
+        }
+        .sheet(isPresented: $showDeviceTypePicker) {
+            DeviceTypePickerSheet(
+                selectedType: $bluetoothManager.selectedDeviceType,
+                onDismiss: {
+                    showDeviceTypePicker = false
+                    bluetoothManager.startScanning()
+                }
+            )
+            .presentationDetents([.medium])
         }
     }
 
@@ -39,6 +52,20 @@ struct DeviceScannerView: View {
             statusView
         }
         .padding(.vertical, 24)
+    }
+
+    private var changeDeviceButton: some View {
+        Button {
+            showDeviceTypePicker = true
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: "arrow.triangle.2.circlepath")
+                Text("Change Device Type")
+            }
+            .font(.footnote)
+            .foregroundColor(.blue)
+        }
+        .padding(.bottom, 8)
     }
 
     @ViewBuilder
@@ -96,7 +123,7 @@ struct DeviceScannerView: View {
         case .connecting:
             StatusIndicator(text: "Connecting...", showProgress: true)
         case .error(let msg):
-            ErrorStatusView(message: msg) {
+            ErrorStatusView(message: msg, deviceType: bluetoothManager.selectedDeviceType) {
                 bluetoothManager.startScanning()
             }
         default:
@@ -107,10 +134,70 @@ struct DeviceScannerView: View {
     }
 }
 
+// MARK: - Device Type Picker Sheet
+
+private struct DeviceTypePickerSheet: View {
+    @Binding var selectedType: DeviceType
+    let onDismiss: () -> Void
+
+    var body: some View {
+        NavigationView {
+            List {
+                ForEach(DeviceType.allCases, id: \.self) { deviceType in
+                    Button {
+                        selectedType = deviceType
+                        onDismiss()
+                    } label: {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(deviceType.displayName)
+                                    .font(.body)
+                                    .foregroundColor(.primary)
+                                if let description = deviceTypeDescription(deviceType) {
+                                    Text(description)
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+
+                            Spacer()
+
+                            if deviceType == selectedType {
+                                Image(systemName: "checkmark")
+                                    .foregroundColor(.blue)
+                            }
+                        }
+                        .padding(.vertical, 4)
+                    }
+                }
+            }
+            .navigationTitle("Select Device Type")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        onDismiss()
+                    }
+                }
+            }
+        }
+    }
+
+    private func deviceTypeDescription(_ type: DeviceType) -> String? {
+        switch type {
+        case .tindeqProgressor:
+            return nil
+        case .pitchSixForceBoard, .weihengWHC06:
+            return "Untested"
+        }
+    }
+}
+
 // MARK: - Error Status View
 
 private struct ErrorStatusView: View {
     let message: String
+    let deviceType: DeviceType
     let onRetry: () -> Void
 
     var body: some View {
@@ -157,9 +244,9 @@ private struct ErrorStatusView: View {
         } else if message.lowercased().contains("unauthorized") {
             return "Go to Settings > Grip Gains Companion > Bluetooth to grant permission"
         } else if message.lowercased().contains("timeout") {
-            return "Make sure your Tindeq is powered on and nearby"
+            return "Make sure your \(deviceType.shortName) is powered on and nearby"
         }
-        return "Make sure your Tindeq is powered on and nearby"
+        return "Make sure your \(deviceType.shortName) is powered on and nearby"
     }
 }
 
@@ -183,7 +270,7 @@ private struct StatusIndicator: View {
 }
 
 struct DeviceRowView: View {
-    let device: ProgressorDevice
+    let device: ForceDevice
 
     var body: some View {
         HStack {
