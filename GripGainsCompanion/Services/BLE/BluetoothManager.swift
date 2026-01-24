@@ -44,8 +44,12 @@ class BluetoothManager: NSObject, ObservableObject {
     @Published var connectedDeviceName: String?
     @Published var connectedDeviceType: DeviceType?
 
-    /// Currently selected device type filter for scanning
-    @Published var selectedDeviceType: DeviceType = .tindeqProgressor
+    /// Currently selected device type filter for scanning (persisted)
+    @Published var selectedDeviceType: DeviceType = .tindeqProgressor {
+        didSet {
+            UserDefaults.standard.set(selectedDeviceType.rawValue, forKey: "selectedDeviceType")
+        }
+    }
 
     /// Persisted ID of last connected device for auto-reconnect
     @AppStorage("lastConnectedDeviceId") private(set) var lastConnectedDeviceId: String = ""
@@ -75,12 +79,22 @@ class BluetoothManager: NSObject, ObservableObject {
 
     override init() {
         super.init()
+        // Restore persisted device type
+        if let savedType = UserDefaults.standard.string(forKey: "selectedDeviceType"),
+           let deviceType = DeviceType(rawValue: savedType) {
+            selectedDeviceType = deviceType
+        }
         centralManager = CBCentralManager(delegate: self, queue: .main)
     }
 
     /// Test initializer for dependency injection
     init(centralManager: CentralManagerProtocol) {
         super.init()
+        // Restore persisted device type
+        if let savedType = UserDefaults.standard.string(forKey: "selectedDeviceType"),
+           let deviceType = DeviceType(rawValue: savedType) {
+            selectedDeviceType = deviceType
+        }
         self.centralManager = centralManager
     }
 

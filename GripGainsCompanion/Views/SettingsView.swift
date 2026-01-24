@@ -79,6 +79,9 @@ struct SettingsView: View {
     /// Progressor handler for sample filter test (optional, only needed when connected)
     var progressorHandler: ProgressorHandler?
 
+    /// Device short name for dynamic text (e.g., "Tindeq", "PitchSix")
+    var deviceShortName: String = "device"
+
     @Environment(\.dismiss) private var dismiss
     @AppStorage("enableHaptics") private var enableHaptics = AppConstants.defaultEnableHaptics
     @AppStorage("enableTargetSound") private var enableTargetSound = AppConstants.defaultEnableTargetSound
@@ -283,7 +286,7 @@ struct SettingsView: View {
                         }
 
                         Toggle("Tare on Startup", isOn: $enableCalibration)
-                        Text("Zeros the scale when Tindeq connects to detect grip and fail states. Does not affect hardware tare or displayed force.")
+                        Text("Zeros the scale when \(deviceShortName) connects to detect grip and fail states. Does not affect hardware tare or displayed force.")
                             .font(.caption)
                             .foregroundColor(.secondary)
 

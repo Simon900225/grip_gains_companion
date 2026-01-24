@@ -6,6 +6,7 @@ struct StatusBarView: View {
     let useLbs: Bool
     let theme: ForceBarTheme
     let expanded: Bool
+    let deviceShortName: String
     let onUnitToggle: () -> Void
     let onSettingsTap: () -> Void
 
@@ -26,6 +27,7 @@ struct StatusBarView: View {
         useLbs: Bool,
         theme: ForceBarTheme = .system,
         expanded: Bool = false,
+        deviceShortName: String = "device",
         onUnitToggle: @escaping () -> Void,
         onSettingsTap: @escaping () -> Void
     ) {
@@ -45,6 +47,7 @@ struct StatusBarView: View {
         self.useLbs = useLbs
         self.theme = theme
         self.expanded = expanded
+        self.deviceShortName = deviceShortName
         self.onUnitToggle = onUnitToggle
         self.onSettingsTap = onSettingsTap
     }
@@ -248,7 +251,7 @@ struct StatusBarView: View {
     @ViewBuilder
     private var calibrationMessage: some View {
         if state.calibrating {
-            Text("Don't touch Tindeq")
+            Text("Don't touch \(deviceShortName)")
                 .font(.caption)
                 .foregroundColor(.orange)
                 .fontWeight(.medium)

@@ -45,7 +45,7 @@ struct DeviceScannerView: View {
                 .font(.system(size: 40))
                 .foregroundColor(.blue)
 
-            Text("Select Tindeq")
+            Text("Select \(bluetoothManager.selectedDeviceType.shortName)")
                 .font(.title2)
                 .fontWeight(.semibold)
 
