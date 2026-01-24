@@ -13,10 +13,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import app.grip_gains_companion.config.AppConstants
 import app.grip_gains_companion.data.PreferencesRepository
 import app.grip_gains_companion.model.ConnectionState
-import app.grip_gains_companion.service.ProgressorHandler
 import app.grip_gains_companion.service.ble.BluetoothManager
 import app.grip_gains_companion.service.web.WebViewBridge
 import app.grip_gains_companion.util.WeightFormatter
@@ -28,7 +26,6 @@ fun SettingsScreen(
     preferencesRepository: PreferencesRepository,
     bluetoothManager: BluetoothManager,
     webViewBridge: WebViewBridge,
-    progressorHandler: ProgressorHandler,
     onDismiss: () -> Unit,
     onDisconnect: () -> Unit,
     onConnectDevice: () -> Unit,
@@ -37,6 +34,7 @@ fun SettingsScreen(
     val scope = rememberCoroutineScope()
     val connectionState by bluetoothManager.connectionState.collectAsStateWithLifecycle()
     val connectedDeviceName by bluetoothManager.connectedDeviceName.collectAsStateWithLifecycle()
+    val selectedDeviceType by bluetoothManager.selectedDeviceType.collectAsStateWithLifecycle()
     val isConnected = connectionState == ConnectionState.Connected
     
     // Collect all preferences
@@ -57,7 +55,6 @@ fun SettingsScreen(
     val backgroundTimeSync by preferencesRepository.backgroundTimeSync.collectAsStateWithLifecycle(initialValue = true)
     val enableLiveActivity by preferencesRepository.enableLiveActivity.collectAsStateWithLifecycle(initialValue = true)
     val autoSelectWeight by preferencesRepository.autoSelectWeight.collectAsStateWithLifecycle(initialValue = true)
-    val autoSelectFromManual by preferencesRepository.autoSelectFromManual.collectAsStateWithLifecycle(initialValue = false)
     
     val scrapedTargetWeight by webViewBridge.targetWeight.collectAsStateWithLifecycle()
     
@@ -168,7 +165,7 @@ fun SettingsScreen(
                     )
                     
                     Text(
-                        text = "Zeros the scale when Tindeq connects to detect grip and fail states.",
+                        text = "Zeros the scale when ${selectedDeviceType.shortName} connects to detect grip and fail states.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(horizontal = 16.dp)

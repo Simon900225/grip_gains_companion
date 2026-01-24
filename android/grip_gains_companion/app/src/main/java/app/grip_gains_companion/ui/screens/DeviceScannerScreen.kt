@@ -10,6 +10,9 @@ import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.SignalCellular4Bar
 import androidx.compose.material3.*
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -18,25 +21,36 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import app.grip_gains_companion.model.ConnectionState
-import app.grip_gains_companion.model.ProgressorDevice
+import app.grip_gains_companion.model.DeviceType
+import app.grip_gains_companion.model.ForceDevice
 import app.grip_gains_companion.service.ble.BluetoothManager
 
 @Composable
 fun DeviceScannerScreen(
     bluetoothManager: BluetoothManager,
-    onDeviceSelected: (ProgressorDevice) -> Unit,
+    onDeviceSelected: (ForceDevice) -> Unit,
     onSkipDevice: () -> Unit
 ) {
     val connectionState by bluetoothManager.connectionState.collectAsState()
     val discoveredDevices by bluetoothManager.discoveredDevices.collectAsState()
+    val selectedDeviceType by bluetoothManager.selectedDeviceType.collectAsState()
     
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .statusBarsPadding()
             .padding(16.dp)
     ) {
+        // Device type picker
+        DeviceTypePicker(
+            selectedType = selectedDeviceType,
+            onTypeSelected = { bluetoothManager.setSelectedDeviceType(it) }
+        )
+        
+        Spacer(modifier = Modifier.height(8.dp))
+        
         // Header
-        HeaderSection(connectionState) {
+        HeaderSection(connectionState, selectedDeviceType) {
             bluetoothManager.startScanning()
         }
         
@@ -73,9 +87,34 @@ fun DeviceScannerScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DeviceTypePicker(
+    selectedType: DeviceType,
+    onTypeSelected: (DeviceType) -> Unit
+) {
+    SingleChoiceSegmentedButtonRow(
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        DeviceType.entries.forEachIndexed { index, type ->
+            SegmentedButton(
+                selected = type == selectedType,
+                onClick = { onTypeSelected(type) },
+                shape = SegmentedButtonDefaults.itemShape(index, DeviceType.entries.size)
+            ) {
+                Text(
+                    text = type.shortName,
+                    style = MaterialTheme.typography.labelSmall
+                )
+            }
+        }
+    }
+}
+
 @Composable
 private fun HeaderSection(
     connectionState: ConnectionState,
+    selectedDeviceType: DeviceType,
     onRetry: () -> Unit
 ) {
     Column(
@@ -94,19 +133,20 @@ private fun HeaderSection(
         Spacer(modifier = Modifier.height(8.dp))
         
         Text(
-            text = "Select Tindeq",
+            text = "Select ${selectedDeviceType.shortName}",
             style = MaterialTheme.typography.headlineSmall
         )
         
         Spacer(modifier = Modifier.height(8.dp))
         
-        StatusIndicator(connectionState, onRetry)
+        StatusIndicator(connectionState, selectedDeviceType, onRetry)
     }
 }
 
 @Composable
 private fun StatusIndicator(
     connectionState: ConnectionState,
+    selectedDeviceType: DeviceType,
     onRetry: () -> Unit
 ) {
     when (connectionState) {
@@ -190,7 +230,7 @@ private fun StatusIndicator(
                 Spacer(modifier = Modifier.height(4.dp))
                 
                 Text(
-                    text = getTroubleshootingTip(connectionState.message),
+                    text = getTroubleshootingTip(connectionState.message, selectedDeviceType.shortName),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
@@ -241,9 +281,9 @@ private fun EmptyStateView(
 
 @Composable
 private fun DeviceList(
-    devices: List<ProgressorDevice>,
+    devices: List<ForceDevice>,
     isConnecting: Boolean,
-    onDeviceSelected: (ProgressorDevice) -> Unit
+    onDeviceSelected: (ForceDevice) -> Unit
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -261,7 +301,7 @@ private fun DeviceList(
 
 @Composable
 private fun DeviceRow(
-    device: ProgressorDevice,
+    device: ForceDevice,
     enabled: Boolean,
     onClick: () -> Unit
 ) {
@@ -321,13 +361,13 @@ private fun getUserFriendlyError(message: String): String {
     }
 }
 
-private fun getTroubleshootingTip(message: String): String {
+private fun getTroubleshootingTip(message: String, deviceName: String): String {
     val lower = message.lowercase()
     return when {
         lower.contains("off") -> "Enable Bluetooth in Settings to continue"
         lower.contains("location") -> "Enable Location in Settings for Bluetooth scanning"
         lower.contains("unauthorized") || lower.contains("permission") -> "Grant Bluetooth permission in Settings"
-        lower.contains("timeout") -> "Make sure your Tindeq is powered on and nearby"
-        else -> "Make sure your Tindeq is powered on and nearby"
+        lower.contains("timeout") -> "Make sure your $deviceName is powered on and nearby"
+        else -> "Make sure your $deviceName is powered on and nearby"
     }
 }

@@ -36,6 +36,7 @@ fun StatusBar(
     sessionStdDev: Double?,
     useLbs: Boolean,
     expanded: Boolean,
+    deviceShortName: String = "device",
     onUnitToggle: () -> Unit,
     onSettingsTap: () -> Unit,
     modifier: Modifier = Modifier
@@ -88,7 +89,7 @@ fun StatusBar(
         // Calibration message
         if (calibrating) {
             Text(
-                text = "Don't touch Tindeq",
+                text = "Don't touch $deviceShortName",
                 style = MaterialTheme.typography.labelMedium,
                 color = StatusColors.calibrating,
                 fontWeight = FontWeight.Medium

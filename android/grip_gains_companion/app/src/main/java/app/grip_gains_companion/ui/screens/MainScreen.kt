@@ -40,6 +40,7 @@ fun MainScreen(
 ) {
     val connectionState by bluetoothManager.connectionState.collectAsState()
     val isConnected = connectionState == ConnectionState.Connected
+    val selectedDeviceType by bluetoothManager.selectedDeviceType.collectAsState()
     
     // Progressor handler state
     val state by progressorHandler.state.collectAsState()
@@ -84,6 +85,7 @@ fun MainScreen(
                     sessionStdDev = sessionStdDev,
                     useLbs = useLbs,
                     expanded = expandedForceBar,
+                    deviceShortName = selectedDeviceType.shortName,
                     onUnitToggle = onUnitToggle,
                     onSettingsTap = onSettingsTap
                 )

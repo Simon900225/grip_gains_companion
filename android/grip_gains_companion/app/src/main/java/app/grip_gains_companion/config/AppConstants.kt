@@ -69,17 +69,44 @@ object AppConstants {
 
     // MARK: - Tindeq Progressor BLE UUIDs
     val PROGRESSOR_SERVICE_UUID: UUID = UUID.fromString("7E4E1701-1EA6-40C9-9DCC-13D34FFEAD57")
-    val NOTIFY_CHARACTERISTIC_UUID: UUID = UUID.fromString("7E4E1702-1EA6-40C9-9DCC-13D34FFEAD57")
-    val WRITE_CHARACTERISTIC_UUID: UUID = UUID.fromString("7E4E1703-1EA6-40C9-9DCC-13D34FFEAD57")
+    val PROGRESSOR_NOTIFY_CHARACTERISTIC_UUID: UUID = UUID.fromString("7E4E1702-1EA6-40C9-9DCC-13D34FFEAD57")
+    val PROGRESSOR_WRITE_CHARACTERISTIC_UUID: UUID = UUID.fromString("7E4E1703-1EA6-40C9-9DCC-13D34FFEAD57")
+
+    // MARK: - PitchSix Force Board BLE UUIDs
+    val PITCH_SIX_FORCE_SERVICE_UUID: UUID = UUID.fromString("9A88D67F-8DF2-4AFE-9E0D-C2BBBE773DD0")
+    val PITCH_SIX_FORCE_RX_CHARACTERISTIC_UUID: UUID = UUID.fromString("9A88D682-8DF2-4AFE-9E0D-C2BBBE773DD0")
+    val PITCH_SIX_WEIGHT_SERVICE_UUID: UUID = UUID.fromString("467A8516-6E39-11EB-9439-0242AC130002")
+    val PITCH_SIX_WEIGHT_TX_CHARACTERISTIC_UUID: UUID = UUID.fromString("467A8517-6E39-11EB-9439-0242AC130002")
+
+    // MARK: - WHC06 BLE Constants
+    const val WHC06_MANUFACTURER_ID: Int = 0x0100  // 256 decimal
 
     // MARK: - BLE Commands
-    val START_WEIGHT_COMMAND = byteArrayOf(101)
+    val PROGRESSOR_START_WEIGHT_COMMAND = byteArrayOf(101)
+    val PITCH_SIX_START_STREAMING_COMMAND = byteArrayOf(0x04)
+    val PITCH_SIX_TARE_COMMAND = byteArrayOf(0x05)
+    val PITCH_SIX_STOP_COMMAND = byteArrayOf(0x07)
 
-    // MARK: - Data Format
+    // MARK: - Tindeq Data Format
     /** Each sample: 4-byte float (weight) + 4-byte uint32 (microseconds) */
-    const val SAMPLE_SIZE = 8
+    const val PROGRESSOR_SAMPLE_SIZE = 8
 
-    // MARK: - BLE Protocol
+    // MARK: - PitchSix BLE Protocol
+    /** Each sample is 3 bytes */
+    const val PITCH_SIX_SAMPLE_SIZE = 3
+    /** Conversion factor: raw value × 0.453592 = kg */
+    const val PITCH_SIX_RAW_TO_KG_FACTOR = 0.453592
+
+    // MARK: - WHC06 BLE Protocol
+    /** Weight data is at payload bytes 10-11, but Android includes the 2-byte
+     *  manufacturer ID prefix, so the actual offset in the raw data is 12-13. */
+    const val WHC06_WEIGHT_BYTE_OFFSET = 12
+    /** Divide raw weight by 100 to get kg */
+    const val WHC06_WEIGHT_DIVISOR = 100.0
+    /** Minimum advertisement data size to contain weight (need bytes 12-13) */
+    const val WHC06_MIN_DATA_SIZE = 14
+
+    // MARK: - Tindeq BLE Protocol
     const val WEIGHT_DATA_PACKET_TYPE: Byte = 1
     const val PACKET_MIN_SIZE = 6
     const val FLOAT_DATA_START = 2

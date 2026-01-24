@@ -141,7 +141,6 @@ class MainActivity : ComponentActivity() {
                                 preferencesRepository = preferencesRepository,
                                 bluetoothManager = bluetoothManager,
                                 webViewBridge = webViewBridge,
-                                progressorHandler = progressorHandler,
                                 onDismiss = { showSettings = false },
                                 onDisconnect = {
                                     showSettings = false
