@@ -1,16 +1,88 @@
 import Foundation
 import CoreBluetooth
 
-struct ProgressorDevice: Identifiable, Equatable {
+// MARK: - Device Type
+
+/// Supported force measurement device types
+enum DeviceType: String, CaseIterable, Codable {
+    case tindeqProgressor
+    case pitchSixForceBoard
+    case weihengWHC06
+
+    var displayName: String {
+        switch self {
+        case .tindeqProgressor: return "Tindeq Progressor"
+        case .pitchSixForceBoard: return "PitchSix Force Board"
+        case .weihengWHC06: return "Weiheng WH-C06"
+        }
+    }
+
+    var shortName: String {
+        switch self {
+        case .tindeqProgressor: return "Tindeq"
+        case .pitchSixForceBoard: return "PitchSix"
+        case .weihengWHC06: return "WH-C06"
+        }
+    }
+
+    /// Whether this device uses GATT connection (vs advertisement-only)
+    var usesGATTConnection: Bool {
+        switch self {
+        case .tindeqProgressor, .pitchSixForceBoard: return true
+        case .weihengWHC06: return false
+        }
+    }
+
+    /// Detect device type from advertisement data
+    static func detect(name: String?, advertisementData: [String: Any]) -> DeviceType? {
+        // Tindeq: name starts with "Progressor"
+        if let name = name, name.hasPrefix("Progressor") {
+            return .tindeqProgressor
+        }
+
+        // PitchSix: name contains "Force Board" or "PitchSix" or "Forceboard"
+        if let name = name,
+           name.contains("Force Board") || name.contains("PitchSix") || name.contains("Forceboard") {
+            return .pitchSixForceBoard
+        }
+
+        // WHC06: manufacturer ID 0x0100
+        if let manufacturerData = advertisementData[CBAdvertisementDataManufacturerDataKey] as? Data,
+           manufacturerData.count >= 2 {
+            let manufacturerId = UInt16(manufacturerData[0]) | (UInt16(manufacturerData[1]) << 8)
+            if manufacturerId == AppConstants.whc06ManufacturerId {
+                return .weihengWHC06
+            }
+        }
+
+        return nil
+    }
+}
+
+// MARK: - Force Device
+
+/// A discovered force measurement device
+struct ForceDevice: Identifiable, Equatable {
     let id: UUID
     let name: String
     let peripheralIdentifier: UUID
+    let type: DeviceType
     var rssi: Int
 
-    init(peripheral: CBPeripheral, rssi: Int = 0) {
+    init(peripheral: CBPeripheral, type: DeviceType, rssi: Int = 0) {
         self.id = peripheral.identifier
-        self.name = peripheral.name ?? "Unknown Progressor"
+        self.name = peripheral.name ?? type.displayName
         self.peripheralIdentifier = peripheral.identifier
+        self.type = type
+        self.rssi = rssi
+    }
+
+    /// Initialize from advertisement data (for WHC06 which doesn't connect)
+    init(id: UUID, name: String, type: DeviceType, rssi: Int = 0) {
+        self.id = id
+        self.name = name
+        self.peripheralIdentifier = id
+        self.type = type
         self.rssi = rssi
     }
 

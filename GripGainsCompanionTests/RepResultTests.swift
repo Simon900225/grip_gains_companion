@@ -9,7 +9,7 @@ final class RepResultTests: XCTestCase {
         let rep = RepResult(
             timestamp: Date(),
             duration: 1.0,
-            samples: [10.0, 11.0, 12.0],
+            samples: [10.0, 11.0, 12.0] as [Double],
             targetWeight: nil
         )
 
@@ -24,7 +24,7 @@ final class RepResultTests: XCTestCase {
         let rep = RepResult(
             timestamp: Date(),
             duration: 0,
-            samples: [],
+            samples: [] as [Double],
             targetWeight: nil
         )
 
@@ -40,7 +40,7 @@ final class RepResultTests: XCTestCase {
         // Start: pickup phase (low values)
         // Middle: stable holding (~20kg)
         // End: release phase (dropping values)
-        let samples: [Float] = [
+        let samples: [Double] = [
             5.0, 10.0, 15.0,           // pickup (indices 0-2)
             20.0, 20.1, 19.9, 20.0, 20.2, 19.8, 20.0, 20.1,  // stable (indices 3-10)
             15.0, 10.0, 5.0            // release (indices 11-13)
@@ -70,7 +70,7 @@ final class RepResultTests: XCTestCase {
     // MARK: - filteredSamples
 
     func testFilteredSamplesMatchesFilterIndices() {
-        let samples: [Float] = [5, 10, 20, 20, 20, 20, 10, 5]
+        let samples: [Double] = [5, 10, 20, 20, 20, 20, 10, 5]
         let rep = RepResult(
             timestamp: Date(),
             duration: 4.0,
@@ -91,7 +91,7 @@ final class RepResultTests: XCTestCase {
     func testComputedStatsUseFilteredSamples() {
         // Create samples where raw and filtered would give different results
         // Need enough samples so middle 50% is truly stable (at least 20 samples)
-        var samples: [Float] = []
+        var samples: [Double] = []
         samples.append(contentsOf: Array(repeating: 0.0, count: 5))   // pickup noise
         samples.append(contentsOf: Array(repeating: 10.0, count: 20)) // stable region
         samples.append(contentsOf: Array(repeating: 0.0, count: 5))   // release noise
@@ -116,7 +116,7 @@ final class RepResultTests: XCTestCase {
     }
 
     func testMeanCalculation() {
-        let samples: [Float] = Array(repeating: 15.0, count: 20)
+        let samples: [Double] = Array(repeating: 15.0, count: 20)
         let rep = RepResult(
             timestamp: Date(),
             duration: 5.0,
@@ -129,7 +129,7 @@ final class RepResultTests: XCTestCase {
 
     func testStdDevCalculation() {
         // All identical values -> stdDev = 0
-        let samples: [Float] = Array(repeating: 20.0, count: 20)
+        let samples: [Double] = Array(repeating: 20.0, count: 20)
         let rep = RepResult(
             timestamp: Date(),
             duration: 5.0,
@@ -143,7 +143,7 @@ final class RepResultTests: XCTestCase {
     // MARK: - Deviation Calculations
 
     func testAbsoluteDeviationWithTarget() {
-        let samples: [Float] = Array(repeating: 20.5, count: 20)
+        let samples: [Double] = Array(repeating: 20.5, count: 20)
         let rep = RepResult(
             timestamp: Date(),
             duration: 5.0,
@@ -155,7 +155,7 @@ final class RepResultTests: XCTestCase {
     }
 
     func testAbsoluteDeviationWithoutTarget() {
-        let samples: [Float] = Array(repeating: 20.0, count: 20)
+        let samples: [Double] = Array(repeating: 20.0, count: 20)
         let rep = RepResult(
             timestamp: Date(),
             duration: 5.0,
@@ -167,7 +167,7 @@ final class RepResultTests: XCTestCase {
     }
 
     func testDeviationPercentageWithTarget() {
-        let samples: [Float] = Array(repeating: 22.0, count: 20)
+        let samples: [Double] = Array(repeating: 22.0, count: 20)
         let rep = RepResult(
             timestamp: Date(),
             duration: 5.0,
@@ -180,7 +180,7 @@ final class RepResultTests: XCTestCase {
     }
 
     func testDeviationPercentageNegative() {
-        let samples: [Float] = Array(repeating: 18.0, count: 20)
+        let samples: [Double] = Array(repeating: 18.0, count: 20)
         let rep = RepResult(
             timestamp: Date(),
             duration: 5.0,
@@ -193,7 +193,7 @@ final class RepResultTests: XCTestCase {
     }
 
     func testDeviationPercentageWithoutTarget() {
-        let samples: [Float] = Array(repeating: 20.0, count: 20)
+        let samples: [Double] = Array(repeating: 20.0, count: 20)
         let rep = RepResult(
             timestamp: Date(),
             duration: 5.0,
@@ -205,7 +205,7 @@ final class RepResultTests: XCTestCase {
     }
 
     func testDeviationPercentageWithZeroTarget() {
-        let samples: [Float] = Array(repeating: 20.0, count: 20)
+        let samples: [Double] = Array(repeating: 20.0, count: 20)
         let rep = RepResult(
             timestamp: Date(),
             duration: 5.0,
@@ -221,7 +221,7 @@ final class RepResultTests: XCTestCase {
 
     func testQuartileCalculations() {
         // Create predictable samples
-        let samples: [Float] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+        let samples: [Double] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
         let rep = RepResult(
             timestamp: Date(),
             duration: 10.0,

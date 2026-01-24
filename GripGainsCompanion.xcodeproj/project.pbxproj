@@ -39,6 +39,8 @@
 		7EEE2C022EF56E9900FD9EF1 /* GripGainsTimerWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 7EEE2BF32EF56E9800FD9EF1 /* GripGainsTimerWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		7EEE2C082EF571D400FD9EF1 /* GripTimerAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E69085D2EF5188500206778 /* GripTimerAttributes.swift */; };
 		7EF8A5DB2EF5ABA5008B9D03 /* FloatingWeightControl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7EF8A5DA2EF5ABA5008B9D03 /* FloatingWeightControl.swift */; };
+		94B55C388F1F3D2CD3DB23C6 /* WHC06Service.swift in Sources */ = {isa = PBXBuildFile; fileRef = C66A2864AAA43AFBAAB85C8D /* WHC06Service.swift */; };
+		A0E7AA75843AEABB1967B43B /* PitchSixService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B14E028ADA507B3BEE5EA08 /* PitchSixService.swift */; };
 		A63A82AD2615FA3C87210A18 /* RepResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = D56A3B12ADFD235FB29F9F0F /* RepResult.swift */; };
 		A850E4862C387293311EF221 /* SetReviewSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 573742CE59DA8C4036ED621F /* SetReviewSheet.swift */; };
 		D8740AA31856AAE788289A7A /* SetStatistics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 523D5FB7A3DA2D5914554AD1 /* SetStatistics.swift */; };
@@ -106,6 +108,7 @@
 		4599C9DEBDE2BFEFDB0C3755 /* ShareableSetSummaryView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ShareableSetSummaryView.swift; sourceTree = "<group>"; };
 		523D5FB7A3DA2D5914554AD1 /* SetStatistics.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SetStatistics.swift; sourceTree = "<group>"; };
 		573742CE59DA8C4036ED621F /* SetReviewSheet.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SetReviewSheet.swift; sourceTree = "<group>"; };
+		5B14E028ADA507B3BEE5EA08 /* PitchSixService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PitchSixService.swift; sourceTree = "<group>"; };
 		614D9441976105B809189772 /* ShareableRepView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ShareableRepView.swift; sourceTree = "<group>"; };
 		7E02DCD52EF23D4000C60B3B /* SoundManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundManager.swift; sourceTree = "<group>"; };
 		7E5D1A112EF966DA001C3436 /* BluetoothManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BluetoothManagerTests.swift; sourceTree = "<group>"; };
@@ -121,6 +124,7 @@
 		7EEE2BD72EF56E0000FD9EF1 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		7EEE2BF32EF56E9800FD9EF1 /* GripGainsTimerWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = GripGainsTimerWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		7EF8A5DA2EF5ABA5008B9D03 /* FloatingWeightControl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingWeightControl.swift; sourceTree = "<group>"; };
+		C66A2864AAA43AFBAAB85C8D /* WHC06Service.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WHC06Service.swift; sourceTree = "<group>"; };
 		D56A3B12ADFD235FB29F9F0F /* RepResult.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RepResult.swift; sourceTree = "<group>"; };
 		F1A2B3C4D5E6F7A8B9C0D1E2 /* StatisticsUtilities.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = StatisticsUtilities.swift; sourceTree = "<group>"; };
 		F2B3C4D5E6F7A8B9C0D1E3F4 /* TimestampedSample.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TimestampedSample.swift; sourceTree = "<group>"; };
@@ -275,6 +279,8 @@
 				107 /* BluetoothManager.swift */,
 				108 /* ProgressorService.swift */,
 				109 /* ProgressorHandler.swift */,
+				5B14E028ADA507B3BEE5EA08 /* PitchSixService.swift */,
+				C66A2864AAA43AFBAAB85C8D /* WHC06Service.swift */,
 			);
 			path = BLE;
 			sourceTree = "<group>";
@@ -497,6 +503,8 @@
 				0B462D70E3FA1E36729D704A /* ShareableRepView.swift in Sources */,
 				7B568597E44C895292E9C4E8 /* ShareableSetSummaryView.swift in Sources */,
 				E6639698A6C48493DA681EBC /* ImageShareUtility.swift in Sources */,
+				A0E7AA75843AEABB1967B43B /* PitchSixService.swift in Sources */,
+				94B55C388F1F3D2CD3DB23C6 /* WHC06Service.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

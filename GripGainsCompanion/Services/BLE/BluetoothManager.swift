@@ -16,7 +16,7 @@ protocol CentralManagerProtocol: AnyObject {
 
 extension CBCentralManager: CentralManagerProtocol {}
 
-/// Connection state for the Tindeq Progressor
+/// Connection state for force measurement devices
 enum ConnectionState: Equatable {
     case initializing
     case disconnected
@@ -37,24 +37,38 @@ enum ConnectionState: Equatable {
     }
 }
 
-/// Manages CoreBluetooth central operations for discovering and connecting to Tindeq Progressor
+/// Manages CoreBluetooth central operations for discovering and connecting to force measurement devices
 class BluetoothManager: NSObject, ObservableObject {
     @Published var connectionState: ConnectionState = .initializing
-    @Published var discoveredDevices: [ProgressorDevice] = []
+    @Published var discoveredDevices: [ForceDevice] = []
     @Published var connectedDeviceName: String?
+    @Published var connectedDeviceType: DeviceType?
+
+    /// Currently selected device type filter for scanning (persisted)
+    @Published var selectedDeviceType: DeviceType = .tindeqProgressor {
+        didSet {
+            UserDefaults.standard.set(selectedDeviceType.rawValue, forKey: "selectedDeviceType")
+        }
+    }
 
     /// Persisted ID of last connected device for auto-reconnect
     @AppStorage("lastConnectedDeviceId") private(set) var lastConnectedDeviceId: String = ""
+    @AppStorage("lastConnectedDeviceType") private var lastConnectedDeviceTypeRaw: String = ""
 
     private var centralManager: CentralManagerProtocol!
     private var connectedPeripheral: CBPeripheral?
+
+    // Device-specific services
     private var progressorService: ProgressorService?
+    private var pitchSixService: PitchSixService?
+    private var whc06Service: WHC06Service?
+
     private var peripheralCache: [UUID: CBPeripheral] = [:]
 
     /// Retry state for indefinite reconnection
     private var retryCount: Int = 0
     private var retryTimer: Timer?
-    private var pendingDevice: ProgressorDevice?
+    private var pendingDevice: ForceDevice?
     private var shouldAutoReconnect: Bool = true
 
     /// Background inactivity disconnect timer (internal for testability)
@@ -65,12 +79,22 @@ class BluetoothManager: NSObject, ObservableObject {
 
     override init() {
         super.init()
+        // Restore persisted device type
+        if let savedType = UserDefaults.standard.string(forKey: "selectedDeviceType"),
+           let deviceType = DeviceType(rawValue: savedType) {
+            selectedDeviceType = deviceType
+        }
         centralManager = CBCentralManager(delegate: self, queue: .main)
     }
 
     /// Test initializer for dependency injection
     init(centralManager: CentralManagerProtocol) {
         super.init()
+        // Restore persisted device type
+        if let savedType = UserDefaults.standard.string(forKey: "selectedDeviceType"),
+           let deviceType = DeviceType(rawValue: savedType) {
+            selectedDeviceType = deviceType
+        }
         self.centralManager = centralManager
     }
 
@@ -83,14 +107,17 @@ class BluetoothManager: NSObject, ObservableObject {
             return
         }
 
-        Log.ble.info("Starting scan...")
+        Log.ble.info("Starting scan for \(self.selectedDeviceType.displayName)...")
         discoveredDevices.removeAll()
         peripheralCache.removeAll()
         connectionState = .scanning
 
+        // For WHC06, we need to allow duplicates to receive continuous advertisement updates
+        let allowDuplicates = selectedDeviceType == .weihengWHC06
+
         centralManager.scanForPeripherals(
             withServices: nil,
-            options: [CBCentralManagerScanOptionAllowDuplicatesKey: false]
+            options: [CBCentralManagerScanOptionAllowDuplicatesKey: allowDuplicates]
         )
     }
 
@@ -101,7 +128,13 @@ class BluetoothManager: NSObject, ObservableObject {
         }
     }
 
-    func connect(to device: ProgressorDevice) {
+    func connect(to device: ForceDevice) {
+        // For WHC06, we don't actually connect - just track advertisements
+        if device.type == .weihengWHC06 {
+            connectToWHC06(device)
+            return
+        }
+
         guard let peripheral = peripheralCache[device.peripheralIdentifier] else {
             Log.ble.error("Device not found in cache")
             connectionState = .error("Device not found")
@@ -116,6 +149,38 @@ class BluetoothManager: NSObject, ObservableObject {
         connectionState = .connecting
         connectedPeripheral = peripheral
         centralManager.connect(peripheral, options: nil)
+    }
+
+    /// Connect to WHC06 (advertisement-based, no actual GATT connection)
+    private func connectToWHC06(_ device: ForceDevice) {
+        Log.ble.info("Starting WHC06 advertisement tracking for \(device.name)...")
+        cancelRetryTimer()
+        pendingDevice = device
+        shouldAutoReconnect = true
+        connectionState = .connected
+        connectedDeviceName = device.name
+        connectedDeviceType = .weihengWHC06
+
+        // Save for auto-reconnect
+        lastConnectedDeviceId = device.peripheralIdentifier.uuidString
+        lastConnectedDeviceTypeRaw = DeviceType.weihengWHC06.rawValue
+
+        // Create and start WHC06 service
+        whc06Service = WHC06Service()
+        whc06Service?.onForceSample = { [weak self] force, timestamp in
+            self?.onForceSample?(force, timestamp)
+        }
+        whc06Service?.onDisconnect = { [weak self] in
+            guard let self = self else { return }
+            Log.ble.info("WHC06 appears disconnected")
+            self.connectionState = .disconnected
+            self.connectedDeviceName = nil
+            self.connectedDeviceType = nil
+            if self.shouldAutoReconnect {
+                self.scheduleRetry()
+            }
+        }
+        whc06Service?.start()
     }
 
     // MARK: - Retry Logic
@@ -137,6 +202,13 @@ class BluetoothManager: NSObject, ObservableObject {
 
         retryTimer = Timer.scheduledTimer(withTimeInterval: delay, repeats: false) { [weak self] _ in
             guard let self = self else { return }
+
+            // For WHC06, just restart scanning
+            if device.type == .weihengWHC06 {
+                Log.ble.info("Restarting WHC06 scan...")
+                self.startScanning()
+                return
+            }
 
             // Try to reconnect - either from cache or restart scanning
             if let peripheral = self.peripheralCache[device.peripheralIdentifier] {
@@ -196,16 +268,23 @@ class BluetoothManager: NSObject, ObservableObject {
 
         centralManager.stopScan()
 
+        // Stop device-specific services
+        whc06Service?.stop()
+        whc06Service = nil
+        pitchSixService = nil
+        progressorService = nil
+
         if let peripheral = connectedPeripheral {
             centralManager.cancelPeripheralConnection(peripheral)
         }
         connectedPeripheral = nil
-        progressorService = nil
         connectedDeviceName = nil
+        connectedDeviceType = nil
 
         // Clear last connected device to prevent auto-reconnect (unless preserving)
         if !preserveAutoReconnect {
             lastConnectedDeviceId = ""
+            lastConnectedDeviceTypeRaw = ""
         }
 
         // Clear device list for fresh scan
@@ -248,21 +327,37 @@ extension BluetoothManager: CBCentralManagerDelegate {
                         didDiscover peripheral: CBPeripheral,
                         advertisementData: [String: Any],
                         rssi RSSI: NSNumber) {
-        // Filter for Progressor devices by name
-        guard let name = peripheral.name, name.hasPrefix("Progressor") else {
+        // Detect device type from advertisement
+        guard let deviceType = DeviceType.detect(name: peripheral.name, advertisementData: advertisementData) else {
             return
         }
 
-        // Cache the peripheral for later connection
-        peripheralCache[peripheral.identifier] = peripheral
+        // Filter by selected device type
+        guard deviceType == selectedDeviceType else {
+            return
+        }
+
+        // For WHC06, process advertisement data if already "connected" and from the selected device
+        if deviceType == .weihengWHC06 && connectionState == .connected && connectedDeviceType == .weihengWHC06,
+           let selectedDevice = pendingDevice,
+           peripheral.identifier == selectedDevice.peripheralIdentifier {
+            whc06Service?.processAdvertisement(advertisementData, rssi: RSSI.intValue)
+            return
+        }
+
+        // Cache the peripheral for later connection (not for WHC06 which doesn't connect)
+        if deviceType.usesGATTConnection {
+            peripheralCache[peripheral.identifier] = peripheral
+        }
+
+        // Create device
+        let device = ForceDevice(peripheral: peripheral, type: deviceType, rssi: RSSI.intValue)
 
         // Update or add device to list
-        let device = ProgressorDevice(peripheral: peripheral, rssi: RSSI.intValue)
-
         if let index = discoveredDevices.firstIndex(where: { $0.id == device.id }) {
             discoveredDevices[index].rssi = RSSI.intValue
         } else {
-            Log.ble.info("Discovered: \(name)")
+            Log.ble.info("Discovered \(deviceType.shortName): \(device.name)")
             discoveredDevices.append(device)
 
             // Auto-connect if this is the last connected device
@@ -280,12 +375,31 @@ extension BluetoothManager: CBCentralManagerDelegate {
         resetRetryState()
 
         connectionState = .connected
-        connectedDeviceName = peripheral.name ?? "Unknown Progressor"
+        connectedDeviceName = peripheral.name ?? "Unknown Device"
+
+        // Determine device type from pending device or detect from name
+        let deviceType = pendingDevice?.type ?? DeviceType.detect(name: peripheral.name, advertisementData: [:]) ?? .tindeqProgressor
+        connectedDeviceType = deviceType
 
         // Save as last connected device for auto-reconnect
         lastConnectedDeviceId = peripheral.identifier.uuidString
+        lastConnectedDeviceTypeRaw = deviceType.rawValue
 
-        // Create service handler and discover services
+        // Create appropriate service handler based on device type
+        switch deviceType {
+        case .tindeqProgressor:
+            setupProgressorService(peripheral: peripheral)
+
+        case .pitchSixForceBoard:
+            setupPitchSixService(peripheral: peripheral)
+
+        case .weihengWHC06:
+            // WHC06 doesn't use GATT connection, this shouldn't happen
+            break
+        }
+    }
+
+    private func setupProgressorService(peripheral: CBPeripheral) {
         progressorService = ProgressorService(peripheral: peripheral)
         progressorService?.onForceSample = { [weak self] force, timestamp in
             self?.onForceSample?(force, timestamp)
@@ -293,12 +407,26 @@ extension BluetoothManager: CBCentralManagerDelegate {
         progressorService?.onDiscoveryTimeout = { [weak self] in
             guard let self = self else { return }
             Log.ble.error("Discovery timeout - disconnecting to retry")
-            // Cancel connection and let the disconnect handler retry
             if let peripheral = self.connectedPeripheral {
                 self.centralManager.cancelPeripheralConnection(peripheral)
             }
         }
         progressorService?.discoverServices()
+    }
+
+    private func setupPitchSixService(peripheral: CBPeripheral) {
+        pitchSixService = PitchSixService(peripheral: peripheral)
+        pitchSixService?.onForceSample = { [weak self] force, timestamp in
+            self?.onForceSample?(force, timestamp)
+        }
+        pitchSixService?.onDiscoveryTimeout = { [weak self] in
+            guard let self = self else { return }
+            Log.ble.error("PitchSix discovery timeout - disconnecting to retry")
+            if let peripheral = self.connectedPeripheral {
+                self.centralManager.cancelPeripheralConnection(peripheral)
+            }
+        }
+        pitchSixService?.discoverServices()
     }
 
     func centralManager(_ central: CBCentralManager,
@@ -308,7 +436,9 @@ extension BluetoothManager: CBCentralManagerDelegate {
         connectionState = .error(error?.localizedDescription ?? "Connection failed")
         connectedPeripheral = nil
         progressorService = nil
+        pitchSixService = nil
         connectedDeviceName = nil
+        connectedDeviceType = nil
 
         // Schedule indefinite retry
         scheduleRetry()
@@ -325,7 +455,9 @@ extension BluetoothManager: CBCentralManagerDelegate {
         connectionState = .disconnected
         connectedPeripheral = nil
         progressorService = nil
+        pitchSixService = nil
         connectedDeviceName = nil
+        connectedDeviceType = nil
 
         // Schedule indefinite retry if we should auto-reconnect
         if shouldAutoReconnect {

@@ -359,7 +359,8 @@ struct ContentView: View {
                 webCoordinator.refreshButtonState()
             },
             scrapedTargetWeight: scrapedTargetWeight,
-            progressorHandler: progressorHandler
+            progressorHandler: progressorHandler,
+            deviceShortName: bluetoothManager.selectedDeviceType.shortName
         )
     }
 
@@ -643,6 +644,7 @@ struct ContentView: View {
             useLbs: useLbs,
             theme: theme,
             expanded: expandedForceBar,
+            deviceShortName: bluetoothManager.selectedDeviceType.shortName,
             onUnitToggle: { useLbs.toggle() },
             onSettingsTap: { showSettings = true }
         )

@@ -62,7 +62,7 @@ final class WeightFormatterTests: XCTestCase {
 
     func testLbsConversionAccuracy() {
         // Test that conversion uses correct factor (2.20462)
-        let kg: Float = 1.0
+        let kg: Double = 1.0
         let expectedLbs = kg * AppConstants.kgToLbs // 2.20462
         let result = WeightFormatter.format(kg, useLbs: true, includeUnit: false)
         XCTAssertEqual(result, String(format: "%.1f", expectedLbs))

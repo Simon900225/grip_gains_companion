@@ -69,15 +69,27 @@ struct AppConstants {
 
     // MARK: - Tindeq Progressor BLE UUIDs
     static let progressorServiceUUID = CBUUID(string: "7E4E1701-1EA6-40C9-9DCC-13D34FFEAD57")
-    static let notifyCharacteristicUUID = CBUUID(string: "7E4E1702-1EA6-40C9-9DCC-13D34FFEAD57")
-    static let writeCharacteristicUUID = CBUUID(string: "7E4E1703-1EA6-40C9-9DCC-13D34FFEAD57")
+    static let progressorNotifyCharacteristicUUID = CBUUID(string: "7E4E1702-1EA6-40C9-9DCC-13D34FFEAD57")
+    static let progressorWriteCharacteristicUUID = CBUUID(string: "7E4E1703-1EA6-40C9-9DCC-13D34FFEAD57")
+
+    // MARK: - PitchSix Force Board BLE UUIDs
+    static let pitchSixForceServiceUUID = CBUUID(string: "9A88D67F-8DF2-4AFE-9E0D-C2BBBE773DD0")
+    static let pitchSixForceRxCharacteristicUUID = CBUUID(string: "9A88D682-8DF2-4AFE-9E0D-C2BBBE773DD0")
+    static let pitchSixWeightServiceUUID = CBUUID(string: "467A8516-6E39-11EB-9439-0242AC130002")
+    static let pitchSixWeightTxCharacteristicUUID = CBUUID(string: "467A8517-6E39-11EB-9439-0242AC130002")
+
+    // MARK: - WHC06 BLE Constants
+    static let whc06ManufacturerId: UInt16 = 0x0100  // 256 decimal
 
     // MARK: - BLE Commands
-    static let startWeightCommand = Data([101])
+    static let progressorStartWeightCommand = Data([101])
+    static let pitchSixStartStreamingCommand = Data([0x04])
+    static let pitchSixTareCommand = Data([0x05])
+    static let pitchSixStopCommand = Data([0x07])
 
-    // MARK: - Data Format
+    // MARK: - Tindeq Data Format
     /// Each sample: 4-byte float (weight) + 4-byte uint32 (microseconds)
-    static let sampleSize = 8
+    static let progressorSampleSize = 8
 
     // MARK: - Timing
     static let sessionRefreshInterval: TimeInterval = 2.0
@@ -107,6 +119,25 @@ enum ProgressorProtocol {
     static let packetMinSize: Int = 6
     static let floatDataStart: Int = 2
     static let floatDataEnd: Int = 6
+}
+
+// MARK: - PitchSix BLE Protocol
+enum PitchSixProtocol {
+    /// Each sample is 3 bytes
+    static let sampleSize: Int = 3
+    /// Conversion factor: raw value × 0.453592 = kg
+    static let rawToKgFactor: Double = 0.453592
+}
+
+// MARK: - WHC06 BLE Protocol
+enum WHC06Protocol {
+    /// Weight data is at payload bytes 10-11, but iOS CoreBluetooth includes the 2-byte
+    /// manufacturer ID prefix, so the actual offset in the raw data is 12-13.
+    static let weightByteOffset: Int = 12
+    /// Divide raw weight by 100 to get kg
+    static let weightDivisor: Double = 100.0
+    /// Minimum advertisement data size to contain weight (need bytes 12-13)
+    static let minDataSize: Int = 14
 }
 
 // MARK: - BLE Errors
