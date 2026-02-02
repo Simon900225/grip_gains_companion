@@ -391,7 +391,7 @@ class BluetoothManager(private val context: Context) {
             characteristic: BluetoothGattCharacteristic,
             value: ByteArray
         ) {
-            AppLogger.d(TAG, "onCharacteristicChanged: ${characteristic.uuid}, ${value.size} bytes")
+            //AppLogger.d(TAG, "onCharacteristicChanged: ${characteristic.uuid}, ${value.size} bytes")
             handleCharacteristicChanged(characteristic, value)
         }
 
@@ -418,7 +418,7 @@ class BluetoothManager(private val context: Context) {
                     }
                 }
                 DeviceType.PITCH_SIX_FORCE_BOARD -> {
-                    AppLogger.d(TAG, "Passing to PitchSixService: ${value.size} bytes")
+                    //AppLogger.d(TAG, "Passing to PitchSixService: ${value.size} bytes")
                     pitchSixService?.parseNotification(value)
                 }
                 else -> {}
