@@ -24,6 +24,7 @@ import app.grip_gains_companion.config.AppConstants
 import app.grip_gains_companion.model.ConnectionState
 import app.grip_gains_companion.model.DeviceType
 import app.grip_gains_companion.model.ForceDevice
+import app.grip_gains_companion.util.AppLogger
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -55,6 +56,7 @@ class BluetoothManager(private val context: Context) {
     private var bluetoothGatt: BluetoothGatt? = null
     private var notifyCharacteristic: BluetoothGattCharacteristic? = null
     private var writeCharacteristic: BluetoothGattCharacteristic? = null
+    private var pitchSixDeviceModeCharacteristic: BluetoothGattCharacteristic? = null
 
     private val handler = Handler(Looper.getMainLooper())
     private var retryCount = 0
@@ -363,28 +365,51 @@ class BluetoothManager(private val context: Context) {
             status: Int
         ) {
             if (status == BluetoothGatt.GATT_SUCCESS) {
+                AppLogger.i(TAG, "Notifications enabled successfully for ${descriptor.characteristic.uuid}")
                 Log.i(TAG, "Notifications enabled")
                 // Start measurement based on device type
                 val deviceType = pendingDevice?.type
                 when (deviceType) {
                     DeviceType.TINDEQ_PROGRESSOR -> startProgressorMeasurement()
                     DeviceType.PITCH_SIX_FORCE_BOARD -> pitchSixService?.let { service ->
-                        writeCharacteristic?.let { char ->
+                        pitchSixDeviceModeCharacteristic?.let { char ->
+                            AppLogger.i(TAG, "Sending start streaming command to Device Mode characteristic ${char.uuid}")
                             service.startStreaming(gatt, char)
-                        }
+                        } ?: AppLogger.e(TAG, "PitchSix Device Mode characteristic not available")
                     }
                     else -> {}
                 }
             } else {
+                AppLogger.e(TAG, "Failed to enable notifications: $status")
                 Log.e(TAG, "Failed to enable notifications: $status")
             }
         }
 
+        // API 33+ callback with ByteArray parameter
         override fun onCharacteristicChanged(
             gatt: BluetoothGatt,
             characteristic: BluetoothGattCharacteristic,
             value: ByteArray
         ) {
+            AppLogger.d(TAG, "onCharacteristicChanged: ${characteristic.uuid}, ${value.size} bytes")
+            handleCharacteristicChanged(characteristic, value)
+        }
+
+        // API < 33 callback without ByteArray parameter
+        @Deprecated("Deprecated in API 33")
+        override fun onCharacteristicChanged(
+            gatt: BluetoothGatt,
+            characteristic: BluetoothGattCharacteristic
+        ) {
+            @Suppress("DEPRECATION")
+            val value = characteristic.value
+            AppLogger.d(TAG, "onCharacteristicChanged (legacy): ${characteristic.uuid}, ${value?.size ?: 0} bytes")
+            if (value != null) {
+                handleCharacteristicChanged(characteristic, value)
+            }
+        }
+
+        private fun handleCharacteristicChanged(characteristic: BluetoothGattCharacteristic, value: ByteArray) {
             val deviceType = pendingDevice?.type
             when (deviceType) {
                 DeviceType.TINDEQ_PROGRESSOR -> {
@@ -393,6 +418,7 @@ class BluetoothManager(private val context: Context) {
                     }
                 }
                 DeviceType.PITCH_SIX_FORCE_BOARD -> {
+                    AppLogger.d(TAG, "Passing to PitchSixService: ${value.size} bytes")
                     pitchSixService?.parseNotification(value)
                 }
                 else -> {}
@@ -405,8 +431,10 @@ class BluetoothManager(private val context: Context) {
             status: Int
         ) {
             if (status == BluetoothGatt.GATT_SUCCESS) {
+                AppLogger.i(TAG, "Write successful to ${characteristic.uuid}")
                 Log.i(TAG, "Write successful")
             } else {
+                AppLogger.e(TAG, "Write failed to ${characteristic.uuid}: $status")
                 Log.e(TAG, "Write failed: $status")
             }
         }
@@ -441,11 +469,23 @@ class BluetoothManager(private val context: Context) {
         }
 
         Log.i(TAG, "Sending start weight command...")
-        bluetoothGatt?.writeCharacteristic(
-            characteristic,
-            AppConstants.PROGRESSOR_START_WEIGHT_COMMAND,
-            BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
-        )
+        // Use appropriate API based on Android version
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            // API 33+: new method signature
+            bluetoothGatt?.writeCharacteristic(
+                characteristic,
+                AppConstants.PROGRESSOR_START_WEIGHT_COMMAND,
+                BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
+            )
+        } else {
+            // API < 33: old method signature
+            @Suppress("DEPRECATION")
+            characteristic.value = AppConstants.PROGRESSOR_START_WEIGHT_COMMAND
+            @Suppress("DEPRECATION")
+            characteristic.writeType = BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
+            @Suppress("DEPRECATION")
+            bluetoothGatt?.writeCharacteristic(characteristic)
+        }
     }
 
     private fun parseProgressorNotification(data: ByteArray) {
@@ -480,29 +520,59 @@ class BluetoothManager(private val context: Context) {
     // MARK: - PitchSix Setup
 
     private fun setupPitchSixService(gatt: BluetoothGatt) {
-        // Try force service first
-        var service = gatt.getService(AppConstants.PITCH_SIX_FORCE_SERVICE_UUID)
-        var notifyUuid = AppConstants.PITCH_SIX_FORCE_RX_CHARACTERISTIC_UUID
-
-        // Fall back to weight service
-        if (service == null) {
-            service = gatt.getService(AppConstants.PITCH_SIX_WEIGHT_SERVICE_UUID)
-            notifyUuid = AppConstants.PITCH_SIX_WEIGHT_TX_CHARACTERISTIC_UUID
+        // List all available services for debugging
+        AppLogger.i(TAG, "Available services on PitchSix device:")
+        gatt.services.forEach { svc ->
+            AppLogger.i(TAG, "  Service: ${svc.uuid}")
+            svc.characteristics.forEach { char ->
+                val props = mutableListOf<String>()
+                if ((char.properties and BluetoothGattCharacteristic.PROPERTY_READ) != 0) props.add("READ")
+                if ((char.properties and BluetoothGattCharacteristic.PROPERTY_WRITE) != 0) props.add("WRITE")
+                if ((char.properties and BluetoothGattCharacteristic.PROPERTY_NOTIFY) != 0) props.add("NOTIFY")
+                if ((char.properties and BluetoothGattCharacteristic.PROPERTY_INDICATE) != 0) props.add("INDICATE")
+                AppLogger.i(TAG, "    Characteristic: ${char.uuid} [${props.joinToString(", ")}]")
+            }
         }
-
-        if (service == null) {
-            Log.e(TAG, "PitchSix service not found")
+        
+        // Get Force Service for receiving force data (notifications)
+        val forceService = gatt.getService(AppConstants.PITCH_SIX_FORCE_SERVICE_UUID)
+        if (forceService == null) {
+            AppLogger.e(TAG, "PitchSix Force Service not found")
+            Log.e(TAG, "PitchSix Force Service not found")
             return
         }
+        AppLogger.i(TAG, "Found PitchSix Force Service: ${forceService.uuid}")
 
-        Log.i(TAG, "Found PitchSix service")
+        // Get Device Mode Service for sending commands (streaming mode, tare, etc.)
+        val deviceModeService = gatt.getService(AppConstants.PITCH_SIX_DEVICE_MODE_SERVICE_UUID)
+        if (deviceModeService == null) {
+            AppLogger.e(TAG, "PitchSix Device Mode Service not found")
+            Log.e(TAG, "PitchSix Device Mode Service not found")
+            return
+        }
+        AppLogger.i(TAG, "Found PitchSix Device Mode Service: ${deviceModeService.uuid}")
 
-        notifyCharacteristic = service.getCharacteristic(notifyUuid)
-
+        // Get Force characteristic for receiving data
+        notifyCharacteristic = forceService.getCharacteristic(AppConstants.PITCH_SIX_FORCE_CHARACTERISTIC_UUID)
         if (notifyCharacteristic == null) {
-            Log.e(TAG, "PitchSix notify characteristic not found")
+            AppLogger.e(TAG, "PitchSix Force characteristic not found")
+            Log.e(TAG, "PitchSix Force characteristic not found")
             return
         }
+        AppLogger.i(TAG, "Found PitchSix Force characteristic: ${notifyCharacteristic?.uuid}")
+
+        // Get Device Mode characteristic for sending commands
+        pitchSixDeviceModeCharacteristic = deviceModeService.getCharacteristic(AppConstants.PITCH_SIX_DEVICE_MODE_CHARACTERISTIC_UUID)
+        if (pitchSixDeviceModeCharacteristic == null) {
+            AppLogger.e(TAG, "PitchSix Device Mode characteristic not found")
+            Log.e(TAG, "PitchSix Device Mode characteristic not found")
+            return
+        }
+        AppLogger.i(TAG, "Found PitchSix Device Mode characteristic: ${pitchSixDeviceModeCharacteristic?.uuid}")
+
+        // Get Tare characteristic (optional, for direct tare command)
+        writeCharacteristic = forceService.getCharacteristic(AppConstants.PITCH_SIX_TARE_CHARACTERISTIC_UUID)
+        AppLogger.i(TAG, "Found PitchSix Tare characteristic: ${writeCharacteristic?.uuid}")
 
         // Create and configure PitchSix service
         pitchSixService = PitchSixService().apply {
@@ -518,12 +588,28 @@ class BluetoothManager(private val context: Context) {
     // MARK: - Helper Methods
 
     private fun enableNotifications(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic) {
+        AppLogger.i(TAG, "Enabling notifications for ${characteristic.uuid}...")
         Log.i(TAG, "Enabling notifications...")
-        gatt.setCharacteristicNotification(characteristic, true)
+        
+        val success = gatt.setCharacteristicNotification(characteristic, true)
+        AppLogger.i(TAG, "setCharacteristicNotification returned: $success")
 
         val descriptor = characteristic.getDescriptor(CLIENT_CHARACTERISTIC_CONFIG)
-        descriptor?.let {
-            gatt.writeDescriptor(it, BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE)
+        if (descriptor != null) {
+            AppLogger.i(TAG, "Writing to CCCD descriptor...")
+            // Use appropriate API based on Android version
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                // API 33+: new method signature
+                gatt.writeDescriptor(descriptor, BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE)
+            } else {
+                // API < 33: old method signature
+                @Suppress("DEPRECATION")
+                descriptor.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
+                @Suppress("DEPRECATION")
+                gatt.writeDescriptor(descriptor)
+            }
+        } else {
+            AppLogger.e(TAG, "CCCD descriptor not found for ${characteristic.uuid}")
         }
     }
 

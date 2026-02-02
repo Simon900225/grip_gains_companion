@@ -73,19 +73,27 @@ object AppConstants {
     val PROGRESSOR_WRITE_CHARACTERISTIC_UUID: UUID = UUID.fromString("7E4E1703-1EA6-40C9-9DCC-13D34FFEAD57")
 
     // MARK: - PitchSix Force Board BLE UUIDs
+    // Force Data Service - contains the Force characteristic for receiving data
     val PITCH_SIX_FORCE_SERVICE_UUID: UUID = UUID.fromString("9A88D67F-8DF2-4AFE-9E0D-C2BBBE773DD0")
-    val PITCH_SIX_FORCE_RX_CHARACTERISTIC_UUID: UUID = UUID.fromString("9A88D682-8DF2-4AFE-9E0D-C2BBBE773DD0")
-    val PITCH_SIX_WEIGHT_SERVICE_UUID: UUID = UUID.fromString("467A8516-6E39-11EB-9439-0242AC130002")
-    val PITCH_SIX_WEIGHT_TX_CHARACTERISTIC_UUID: UUID = UUID.fromString("467A8517-6E39-11EB-9439-0242AC130002")
+    val PITCH_SIX_FORCE_CHARACTERISTIC_UUID: UUID = UUID.fromString("9A88D682-8DF2-4AFE-9E0D-C2BBBE773DD0")
+    val PITCH_SIX_TARE_CHARACTERISTIC_UUID: UUID = UUID.fromString("9A88D683-8DF2-4AFE-9E0D-C2BBBE773DD0")
+    val PITCH_SIX_THRESHOLD_CHARACTERISTIC_UUID: UUID = UUID.fromString("9A88D686-8DF2-4AFE-9E0D-C2BBBE773DD0")
+    // Device Mode Service - contains the Device Mode characteristic for commands
+    val PITCH_SIX_DEVICE_MODE_SERVICE_UUID: UUID = UUID.fromString("467A8516-6E39-11EB-9439-0242AC130002")
+    val PITCH_SIX_DEVICE_MODE_CHARACTERISTIC_UUID: UUID = UUID.fromString("467A8517-6E39-11EB-9439-0242AC130002")
 
     // MARK: - WHC06 BLE Constants
     const val WHC06_MANUFACTURER_ID: Int = 0x0100  // 256 decimal
 
     // MARK: - BLE Commands
     val PROGRESSOR_START_WEIGHT_COMMAND = byteArrayOf(101)
-    val PITCH_SIX_START_STREAMING_COMMAND = byteArrayOf(0x04)
-    val PITCH_SIX_TARE_COMMAND = byteArrayOf(0x05)
-    val PITCH_SIX_STOP_COMMAND = byteArrayOf(0x07)
+    // PitchSix Device Mode commands (write to Device Mode Characteristic)
+    val PITCH_SIX_MODE_STREAMING = byteArrayOf(0x04)  // Continuous streaming mode
+    val PITCH_SIX_MODE_TARE = byteArrayOf(0x05)       // Tare via Device Mode
+    val PITCH_SIX_MODE_QUICK_START = byteArrayOf(0x06) // Quick Start mode
+    val PITCH_SIX_MODE_IDLE = byteArrayOf(0x07)       // Idle mode (stop)
+    // PitchSix Tare command (write to Tare Characteristic)
+    val PITCH_SIX_TARE_COMMAND = byteArrayOf(0x01)
 
     // MARK: - Tindeq Data Format
     /** Each sample: 4-byte float (weight) + 4-byte uint32 (microseconds) */

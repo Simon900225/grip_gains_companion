@@ -2,8 +2,9 @@ package app.grip_gains_companion.service.ble
 
 import android.bluetooth.BluetoothGatt
 import android.bluetooth.BluetoothGattCharacteristic
-import android.util.Log
+import android.os.Build
 import app.grip_gains_companion.config.AppConstants
+import app.grip_gains_companion.util.AppLogger
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
@@ -27,7 +28,7 @@ class PitchSixService {
      * Start the service - called when connected
      */
     fun start() {
-        Log.i(TAG, "Starting PitchSix service...")
+        AppLogger.i(TAG, "Starting PitchSix service...")
         baseTimestamp = System.currentTimeMillis() * 1000  // Convert to microseconds
         sampleCounter = 0
     }
@@ -36,86 +37,156 @@ class PitchSixService {
      * Stop the service
      */
     fun stop() {
-        Log.i(TAG, "Stopping PitchSix service...")
+        AppLogger.i(TAG, "Stopping PitchSix service...")
     }
 
     /**
-     * Send start streaming command
+     * Send start streaming command to Device Mode characteristic
+     * Write 0x04 to enter continuous streaming mode
      */
-    fun startStreaming(gatt: BluetoothGatt, writeCharacteristic: BluetoothGattCharacteristic): Boolean {
-        Log.i(TAG, "Sending start streaming command...")
-        return gatt.writeCharacteristic(
-            writeCharacteristic,
-            AppConstants.PITCH_SIX_START_STREAMING_COMMAND,
-            BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
-        ) == BluetoothGatt.GATT_SUCCESS
+    fun startStreaming(gatt: BluetoothGatt, deviceModeCharacteristic: BluetoothGattCharacteristic): Boolean {
+        AppLogger.i(TAG, "Sending start streaming command (0x04) to Device Mode characteristic...")
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            // API 33+: new method signature
+            gatt.writeCharacteristic(
+                deviceModeCharacteristic,
+                AppConstants.PITCH_SIX_MODE_STREAMING,
+                BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
+            ) == BluetoothGatt.GATT_SUCCESS
+        } else {
+            // API < 33: old method signature
+            @Suppress("DEPRECATION")
+            deviceModeCharacteristic.value = AppConstants.PITCH_SIX_MODE_STREAMING
+            @Suppress("DEPRECATION")
+            deviceModeCharacteristic.writeType = BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
+            @Suppress("DEPRECATION")
+            gatt.writeCharacteristic(deviceModeCharacteristic)
+        }
     }
 
     /**
-     * Send tare command
+     * Send tare command via Device Mode characteristic
+     * Write 0x05 to Device Mode to tare
      */
-    fun sendTare(gatt: BluetoothGatt, writeCharacteristic: BluetoothGattCharacteristic): Boolean {
-        Log.i(TAG, "Sending tare command...")
-        return gatt.writeCharacteristic(
-            writeCharacteristic,
-            AppConstants.PITCH_SIX_TARE_COMMAND,
-            BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
-        ) == BluetoothGatt.GATT_SUCCESS
+    fun sendTareViaDeviceMode(gatt: BluetoothGatt, deviceModeCharacteristic: BluetoothGattCharacteristic): Boolean {
+        AppLogger.i(TAG, "Sending tare command (0x05) to Device Mode characteristic...")
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            // API 33+: new method signature
+            gatt.writeCharacteristic(
+                deviceModeCharacteristic,
+                AppConstants.PITCH_SIX_MODE_TARE,
+                BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
+            ) == BluetoothGatt.GATT_SUCCESS
+        } else {
+            // API < 33: old method signature
+            @Suppress("DEPRECATION")
+            deviceModeCharacteristic.value = AppConstants.PITCH_SIX_MODE_TARE
+            @Suppress("DEPRECATION")
+            deviceModeCharacteristic.writeType = BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
+            @Suppress("DEPRECATION")
+            gatt.writeCharacteristic(deviceModeCharacteristic)
+        }
     }
 
     /**
-     * Send stop command
+     * Send tare command via Tare characteristic
+     * Write 0x01 to Tare characteristic to tare
      */
-    fun stopStreaming(gatt: BluetoothGatt, writeCharacteristic: BluetoothGattCharacteristic): Boolean {
-        Log.i(TAG, "Sending stop command...")
-        return gatt.writeCharacteristic(
-            writeCharacteristic,
-            AppConstants.PITCH_SIX_STOP_COMMAND,
-            BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
-        ) == BluetoothGatt.GATT_SUCCESS
+    fun sendTare(gatt: BluetoothGatt, tareCharacteristic: BluetoothGattCharacteristic): Boolean {
+        AppLogger.i(TAG, "Sending tare command (0x01) to Tare characteristic...")
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            // API 33+: new method signature
+            gatt.writeCharacteristic(
+                tareCharacteristic,
+                AppConstants.PITCH_SIX_TARE_COMMAND,
+                BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
+            ) == BluetoothGatt.GATT_SUCCESS
+        } else {
+            // API < 33: old method signature
+            @Suppress("DEPRECATION")
+            tareCharacteristic.value = AppConstants.PITCH_SIX_TARE_COMMAND
+            @Suppress("DEPRECATION")
+            tareCharacteristic.writeType = BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
+            @Suppress("DEPRECATION")
+            gatt.writeCharacteristic(tareCharacteristic)
+        }
+    }
+
+    /**
+     * Send stop command (enter Idle mode) to Device Mode characteristic
+     * Write 0x07 to stop streaming
+     */
+    fun stopStreaming(gatt: BluetoothGatt, deviceModeCharacteristic: BluetoothGattCharacteristic): Boolean {
+        AppLogger.i(TAG, "Sending stop/idle command (0x07) to Device Mode characteristic...")
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            // API 33+: new method signature
+            gatt.writeCharacteristic(
+                deviceModeCharacteristic,
+                AppConstants.PITCH_SIX_MODE_IDLE,
+                BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
+            ) == BluetoothGatt.GATT_SUCCESS
+        } else {
+            // API < 33: old method signature
+            @Suppress("DEPRECATION")
+            deviceModeCharacteristic.value = AppConstants.PITCH_SIX_MODE_IDLE
+            @Suppress("DEPRECATION")
+            deviceModeCharacteristic.writeType = BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
+            @Suppress("DEPRECATION")
+            gatt.writeCharacteristic(deviceModeCharacteristic)
+        }
     }
 
     /**
      * Parse notification data from PitchSix
-     * Each sample is 3 bytes, big-endian 24-bit signed integer
+     * Format: [numSamples_MSB, numSamples_LSB, sample1_byte1, sample1_byte2, sample1_byte3, ...]
+     * Each sample is 3 bytes representing pounds in the format: byte1*32768 + byte2*256 + byte3
      */
     fun parseNotification(data: ByteArray) {
-        if (data.isEmpty()) return
+        if (data.size < 2) {
+            AppLogger.w(TAG, "Data too short: ${data.size} bytes")
+            return
+        }
 
-        var offset = 0
-        while (offset + AppConstants.PITCH_SIX_SAMPLE_SIZE <= data.size) {
-            // Parse 3-byte big-endian value
-            val rawValue = parseThreeByteInt(data, offset)
+        // First two bytes contain the number of samples in the packet
+        val numSamples = ((data[0].toInt() and 0xFF) shl 8) or (data[1].toInt() and 0xFF)
+        
+        AppLogger.d(TAG, "Received packet with $numSamples samples (${data.size} bytes)")
+
+        // Process each sample (3 bytes per sample)
+        for (i in 0 until numSamples) {
+            val offset = 2 + i * 3  // Skip the first 2 bytes (sample count)
             
-            // Convert to kg: raw value × 0.453592
-            val weightKg = rawValue * AppConstants.PITCH_SIX_RAW_TO_KG_FACTOR
+            if (offset + 2 >= data.size) {
+                AppLogger.w(TAG, "Incomplete sample $i at offset $offset")
+                break
+            }
+
+            // Parse 3-byte value as unsigned: byte1*32768 + byte2*256 + byte3
+            val rawValueLbs = parseThreeByteUnsigned(data, offset)
+            
+            // Convert from pounds to kg
+            val weightKg = rawValueLbs * AppConstants.PITCH_SIX_RAW_TO_KG_FACTOR
 
             // Generate synthetic timestamp
             val timestamp = generateTimestamp()
 
-            onForceSample?.invoke(weightKg, timestamp)
+            AppLogger.v(TAG, "Sample $i: raw=$rawValueLbs lbs, weight=${"%.2f".format(weightKg)} kg")
 
-            offset += AppConstants.PITCH_SIX_SAMPLE_SIZE
+            onForceSample?.invoke(weightKg, timestamp)
         }
     }
 
     /**
-     * Parse a 3-byte big-endian signed integer
+     * Parse a 3-byte unsigned value in the format: byte1*32768 + byte2*256 + byte3
+     * This represents pounds (lbs) that need to be converted to kg
      */
-    private fun parseThreeByteInt(data: ByteArray, offset: Int): Int {
-        val b0 = data[offset].toInt() and 0xFF
-        val b1 = data[offset + 1].toInt() and 0xFF
-        val b2 = data[offset + 2].toInt() and 0xFF
+    private fun parseThreeByteUnsigned(data: ByteArray, offset: Int): Double {
+        val byte1 = data[offset].toInt() and 0xFF
+        val byte2 = data[offset + 1].toInt() and 0xFF
+        val byte3 = data[offset + 2].toInt() and 0xFF
 
-        // Big-endian: first byte is MSB
-        var value = (b0 shl 16) or (b1 shl 8) or b2
-
-        // Sign-extend if negative (bit 23 is set)
-        if ((value and 0x800000) != 0) {
-            value = value or 0xFF000000.toInt()
-        }
-
-        return value
+        // Calculate as per PitchSix protocol: byte1*32768 + byte2*256 + byte3
+        return (byte1 * 32768.0) + (byte2 * 256.0) + byte3.toDouble()
     }
 
     /**

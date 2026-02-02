@@ -21,6 +21,7 @@ import app.grip_gains_companion.service.ProgressorHandler
 import app.grip_gains_companion.service.ble.BluetoothManager
 import app.grip_gains_companion.service.web.WebViewBridge
 import app.grip_gains_companion.ui.screens.DeviceScannerScreen
+import app.grip_gains_companion.ui.screens.LogViewerScreen
 import app.grip_gains_companion.ui.screens.MainScreen
 import app.grip_gains_companion.ui.screens.SettingsScreen
 import app.grip_gains_companion.ui.theme.GripGainsTheme
@@ -119,6 +120,7 @@ class MainActivity : ComponentActivity() {
             // Screen state
             var skippedDevice by remember { mutableStateOf(false) }
             var showSettings by remember { mutableStateOf(false) }
+            var showLogViewer by remember { mutableStateOf(false) }
             
             // Haptic feedback on connect
             LaunchedEffect(connectionState) {
@@ -136,6 +138,12 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     when {
+                        showLogViewer -> {
+                            LogViewerScreen(
+                                onDismiss = { showLogViewer = false }
+                            )
+                        }
+                        
                         showSettings -> {
                             SettingsScreen(
                                 preferencesRepository = preferencesRepository,
@@ -155,6 +163,10 @@ class MainActivity : ComponentActivity() {
                                     showSettings = false
                                     progressorHandler.recalibrate()
                                     webViewBridge.refreshButtonState()
+                                },
+                                onViewLogs = {
+                                    showSettings = false
+                                    showLogViewer = true
                                 }
                             )
                         }

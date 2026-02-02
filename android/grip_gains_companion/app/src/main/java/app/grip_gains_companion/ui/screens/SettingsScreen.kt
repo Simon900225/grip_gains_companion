@@ -29,7 +29,8 @@ fun SettingsScreen(
     onDismiss: () -> Unit,
     onDisconnect: () -> Unit,
     onConnectDevice: () -> Unit,
-    onRecalibrate: () -> Unit
+    onRecalibrate: () -> Unit,
+    onViewLogs: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
     val connectionState by bluetoothManager.connectionState.collectAsStateWithLifecycle()
@@ -285,6 +286,16 @@ fun SettingsScreen(
                         modifier = Modifier.clickableRow { onConnectDevice() }
                     )
                 }
+            }
+            
+            // Debug section
+            SettingsSection(title = "Debug") {
+                ListItem(
+                    headlineContent = { Text("View Debug Logs") },
+                    supportingContent = { Text("View and share diagnostic logs") },
+                    leadingContent = { Icon(Icons.Default.BugReport, contentDescription = null) },
+                    modifier = Modifier.clickableRow { onViewLogs() }
+                )
             }
             
             // Experimental section
