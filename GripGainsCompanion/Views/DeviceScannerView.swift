@@ -149,16 +149,9 @@ private struct DeviceTypePickerSheet: View {
                         onDismiss()
                     } label: {
                         HStack {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(deviceType.displayName)
-                                    .font(.body)
-                                    .foregroundColor(.primary)
-                                if let description = deviceTypeDescription(deviceType) {
-                                    Text(description)
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-                            }
+                            Text(deviceType.displayName)
+                                .font(.body)
+                                .foregroundColor(.primary)
 
                             Spacer()
 
@@ -180,15 +173,6 @@ private struct DeviceTypePickerSheet: View {
                     }
                 }
             }
-        }
-    }
-
-    private func deviceTypeDescription(_ type: DeviceType) -> String? {
-        switch type {
-        case .tindeqProgressor:
-            return nil
-        case .pitchSixForceBoard, .weihengWHC06:
-            return "Untested"
         }
     }
 }
