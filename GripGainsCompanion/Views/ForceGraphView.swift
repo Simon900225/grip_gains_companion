@@ -94,9 +94,9 @@ struct ForceGraphView: View {
             upper = max(upper, targetDisplay + tolDisplay)
         }
 
-        // Add padding (at least 2 units to give breathing room)
+        // Add padding (at least 0.5 units to give breathing room)
         let range = upper - lower
-        let padding = max(range * 0.15, 2.0)
+        let padding = max(range * 0.05, 0.5)
         return max(0, lower - padding)...(upper + padding)
     }
 }

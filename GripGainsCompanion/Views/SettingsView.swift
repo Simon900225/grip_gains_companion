@@ -476,6 +476,7 @@ struct SettingsView: View {
                     Toggle("Force Graph", isOn: $showForceGraph)
                     if showForceGraph {
                         Picker("Graph Window", selection: $forceGraphWindow) {
+                            Text("1s").tag(1)
                             Text("5s").tag(5)
                             Text("10s").tag(10)
                             Text("30s").tag(30)
