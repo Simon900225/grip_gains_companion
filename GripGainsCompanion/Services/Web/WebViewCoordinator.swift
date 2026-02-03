@@ -1,8 +1,9 @@
 import WebKit
+import Combine
 
 /// Coordinator for WKWebView that handles JavaScript message callbacks
 /// This bridges JavaScript calls back to Swift
-class WebViewCoordinator: NSObject, WKScriptMessageHandler, WKNavigationDelegate {
+class WebViewCoordinator: NSObject, ObservableObject, WKScriptMessageHandler, WKNavigationDelegate {
     private weak var webView: WKWebView?
 
     /// Callback when button state changes

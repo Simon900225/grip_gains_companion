@@ -2,14 +2,14 @@ import Foundation
 
 /// JavaScript code snippets for interacting with the gripgains.ca web UI
 enum JavaScriptBridge {
-    /// Close the weight picker overlay if it's open on page load
-    /// This handles the case where Vue restores the overlay state after a page refresh
+    /// Close the weight picker if it's open on page load
+    /// This handles the case where Vue restores the picker state after a page refresh
     static let closePickerOnLoadScript = """
         (function() {
             function closePickerIfOpen() {
-                const overlay = document.querySelector('.weight-picker-overlay');
-                if (overlay) {
-                    const closeBtn = overlay.querySelector('.close-button');
+                const picker = document.querySelector('.weight-picker-modal');
+                if (picker) {
+                    const closeBtn = picker.querySelector('.close-button');
                     if (closeBtn) closeBtn.click();
                 }
             }
@@ -289,20 +289,19 @@ enum JavaScriptBridge {
             const button = document.querySelector('.weight-picker-button');
             if (!button) return;
 
-            // Inject CSS to hide the overlay while we interact with it
+            // Inject CSS to hide the picker while we interact with it
             const style = document.createElement('style');
             style.id = 'auto-select-hide';
-            style.textContent = '.weight-picker-overlay { display: none !important; }';
+            style.textContent = '.weight-picker-modal { visibility: hidden !important; opacity: 0 !important; position: fixed !important; }';
             document.head.appendChild(style);
 
-            // Click to open the overlay
+            // Click to open the picker
             button.click();
 
-            // Wait for overlay to render, then find options
+            // Wait for picker to render, then find options
             setTimeout(() => {
                 const options = document.querySelectorAll('.weight-option');
                 if (!options.length) {
-                    // Clean up style if no options found
                     style.remove();
                     return;
                 }
@@ -329,12 +328,12 @@ enum JavaScriptBridge {
                 });
 
                 // Temporarily switch to opacity-based hiding to allow clicking
-                style.textContent = '.weight-picker-overlay { opacity: 0 !important; pointer-events: auto !important; }';
+                style.textContent = '.weight-picker-modal { opacity: 0 !important; pointer-events: auto !important; }';
 
                 // Click the closest option (Vue handles the rest)
                 if (closest) closest.click();
 
-                // Remove the hiding style after overlay closes
+                // Remove the hiding style after picker closes
                 setTimeout(() => style.remove(), 100);
             }, 50);
         })();
@@ -350,25 +349,16 @@ enum JavaScriptBridge {
                 return;
             }
 
-            // Inject CSS to hide ALL possible overlay/modal elements while we interact
+            // Inject CSS to hide the modal while we interact
             const style = document.createElement('style');
             style.id = 'scrape-options-hide';
-            style.textContent = `
-                .weight-picker-overlay,
-                .modal,
-                .modal-backdrop,
-                [class*="overlay"],
-                [class*="modal"],
-                [class*="picker"] > div:not(button) {
-                    display: none !important;
-                }
-            `;
+            style.textContent = '.weight-picker-modal { visibility: hidden !important; opacity: 0 !important; position: fixed !important; }';
             document.head.appendChild(style);
 
-            // Click to open the overlay
+            // Click to open the picker
             button.click();
 
-            // Wait for overlay to render, then scrape options
+            // Wait for picker to render, then scrape options
             setTimeout(() => {
                 const options = document.querySelectorAll('.weight-option');
                 const weights = [];
@@ -384,22 +374,12 @@ enum JavaScriptBridge {
                 });
 
                 // Temporarily switch to opacity-based hiding to allow clicking
-                style.textContent = `
-                    .weight-picker-overlay,
-                    .modal,
-                    .modal-backdrop,
-                    [class*="overlay"],
-                    [class*="modal"],
-                    [class*="picker"] > div:not(button) {
-                        opacity: 0 !important;
-                        pointer-events: auto !important;
-                    }
-                `;
+                style.textContent = '.weight-picker-modal { opacity: 0 !important; pointer-events: auto !important; }';
 
-                // Close picker by clicking the close button inside the overlay
-                const overlay = document.querySelector('.weight-picker-overlay');
-                if (overlay) {
-                    const closeBtn = overlay.querySelector('.close-button');
+                // Close picker by clicking the close button
+                const picker = document.querySelector('.weight-picker-modal');
+                if (picker) {
+                    const closeBtn = picker.querySelector('.close-button');
                     if (closeBtn) {
                         closeBtn.click();
                     } else {
@@ -407,9 +387,8 @@ enum JavaScriptBridge {
                         button.click();
                     }
                 }
-                // If no overlay, do nothing - it's already closed
 
-                // Remove the hiding style after overlay closes
+                // Remove the hiding style after picker closes
                 setTimeout(() => style.remove(), 150);
 
                 // Send weights with unit info

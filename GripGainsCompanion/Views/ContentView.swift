@@ -215,7 +215,7 @@ struct ContentView: View {
     @StateObject private var repTracker = RepTracker()
     @State private var showSetReview: Bool = false
 
-    private let webCoordinator = WebViewCoordinator()
+    @StateObject private var webCoordinator = WebViewCoordinator()
 
     private var preferredScheme: ColorScheme? {
         switch ForceBarTheme(rawValue: forceBarTheme) ?? .system {
