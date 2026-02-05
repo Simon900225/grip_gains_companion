@@ -132,24 +132,13 @@ final class SessionPersistenceService: ObservableObject {
 
     // MARK: - Cleanup
 
-    /// Permanently delete soft-deleted and empty sessions (called on app launch)
+    /// Permanently delete soft-deleted sessions (called on app launch)
     private func purgeDeletedSessions() {
-        // 1. Purge soft-deleted sessions
         let deletedPredicate = #Predicate<SessionLog> { $0.isDeleted }
         let deletedDescriptor = FetchDescriptor<SessionLog>(predicate: deletedPredicate)
         if let toDelete = try? modelContext.fetch(deletedDescriptor) {
             for session in toDelete {
                 modelContext.delete(session)
-            }
-        }
-
-        // 2. Purge empty (0-rep) sessions - exclude current session
-        let allDescriptor = FetchDescriptor<SessionLog>()
-        if let allSessions = try? modelContext.fetch(allDescriptor) {
-            for session in allSessions where session != currentSession {
-                if (session.reps ?? []).isEmpty {
-                    modelContext.delete(session)
-                }
             }
         }
 

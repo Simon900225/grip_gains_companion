@@ -4,7 +4,7 @@ import SwiftData
 /// Main history view showing all logged sessions
 struct SessionHistoryView: View {
     @EnvironmentObject private var persistenceService: SessionPersistenceService
-    @Query(sort: \SessionLog.timestamp, order: .reverse) private var sessions: [SessionLog]
+    @Query(filter: #Predicate<SessionLog> { !$0.isDeleted }, sort: \SessionLog.timestamp, order: .reverse) private var sessions: [SessionLog]
     @AppStorage("useLbs") private var useLbs = false
     @State private var selectedGripper: String?
 
