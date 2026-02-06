@@ -1,6 +1,29 @@
 import SwiftUI
 import SwiftData
 
+/// Sheet wrapper for session history with its own NavigationStack
+struct SessionHistorySheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            SessionHistoryView()
+                .navigationDestination(for: UUID.self) { sessionId in
+                    SessionDetailWrapper(sessionId: sessionId)
+                }
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarLeading) {
+                        Button {
+                            dismiss()
+                        } label: {
+                            Image(systemName: "chevron.left")
+                        }
+                    }
+                }
+        }
+    }
+}
+
 /// Main history view showing all logged sessions
 struct SessionHistoryView: View {
     @EnvironmentObject private var persistenceService: SessionPersistenceService
@@ -33,34 +56,32 @@ struct SessionHistoryView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            Group {
-                if sessions.isEmpty {
-                    ContentUnavailableView(
-                        "No Sessions",
-                        systemImage: "hand.raised.slash",
-                        description: Text("Complete some grip training to see your history here.")
-                    )
-                } else {
-                    VStack(spacing: 0) {
-                        // Gripper filter
-                        if gripperTypes.count > 1 {
-                            gripperPicker
-                        }
-                        sessionsList
+        Group {
+            if sessions.isEmpty {
+                ContentUnavailableView(
+                    "No Sessions",
+                    systemImage: "hand.raised.slash",
+                    description: Text("Complete some grip training to see your history here.")
+                )
+            } else {
+                VStack(spacing: 0) {
+                    // Gripper filter
+                    if gripperTypes.count > 1 {
+                        gripperPicker
                     }
+                    sessionsList
                 }
             }
-            .navigationTitle("History")
-            .toolbar {
-                if !sessions.isEmpty {
-                    ToolbarItem(placement: .navigationBarLeading) {
-                        ShareLink(item: CSVExporter.exportAllSessions(filteredSessions, useLbs: useLbs)) {
-                            Label("Export All", systemImage: "square.and.arrow.up")
-                        }
-                    }
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        EditButton()
+        }
+        .navigationTitle("History")
+        .toolbar {
+            if !sessions.isEmpty {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    EditButton()
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    ShareLink(item: CSVExporter.exportAllSessions(filteredSessions, useLbs: useLbs)) {
+                        Image(systemName: "square.and.arrow.up")
                     }
                 }
             }
@@ -84,7 +105,7 @@ struct SessionHistoryView: View {
             ForEach(groupedSessions, id: \.0) { dayHeader, daySessions in
                 Section(header: Text(dayHeader)) {
                     ForEach(daySessions) { session in
-                        NavigationLink(destination: SessionDetailView(session: session)) {
+                        NavigationLink(value: session.id) {
                             SessionRowView(session: session, useLbs: useLbs)
                         }
                     }
@@ -142,7 +163,7 @@ struct SessionRowView: View {
 
 #Preview {
     let container = try! ModelContainer(for: SessionLog.self, RepLog.self, configurations: .init(isStoredInMemoryOnly: true))
-    return SessionHistoryView()
+    return SessionHistorySheet()
         .modelContainer(container)
         .environmentObject(SessionPersistenceService(modelContainer: container))
 }

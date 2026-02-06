@@ -62,13 +62,13 @@ struct SetReviewSheet: View {
     private var summarySection: some View {
         VStack(spacing: 8) {
             if let absDev = stats.meanAbsoluteDeviation, let pctDev = stats.meanDeviation {
-                statRow("Avg. difference of Median from Target", value: formatDeviation(absolute: absDev, percentage: pctDev), bold: true)
+                StatRowView(label: "Avg. difference of Median from Target", value: DeviationFormatter.format(absolute: absDev, percentage: pctDev, useLbs: useLbs), bold: true)
             }
             if let stdDev = stats.averageStdDev {
-                statRow("Avg. Standard Deviation", value: String(format: "%.2f", useLbs ? stdDev * AppConstants.kgToLbs : stdDev))
+                StatRowView(label: "Avg. Standard Deviation", value: String(format: "%.2f", useLbs ? stdDev * AppConstants.kgToLbs : stdDev))
             }
             if let target = stats.targetWeight {
-                statRow("Target", value: WeightFormatter.format(target, useLbs: useLbs))
+                StatRowView(label: "Target", value: WeightFormatter.format(target, useLbs: useLbs))
             }
 
             Button {
@@ -127,76 +127,25 @@ struct SetReviewSheet: View {
 
             // Rep Stats
             VStack(spacing: 6) {
-                statRow("Duration", value: String(format: "%.1fs", rep.duration))
-                statRow("Median", value: WeightFormatter.format(rep.median, useLbs: useLbs))
-                statRow("Average", value: WeightFormatter.format(rep.mean, useLbs: useLbs))
-                statRow("Standard Deviation", value: String(format: "%.2f", useLbs ? rep.stdDev * AppConstants.kgToLbs : rep.stdDev))
+                StatRowView(label: "Duration", value: String(format: "%.1fs", rep.duration))
+                StatRowView(label: "Median", value: WeightFormatter.format(rep.median, useLbs: useLbs))
+                StatRowView(label: "Average", value: WeightFormatter.format(rep.mean, useLbs: useLbs))
+                StatRowView(label: "Standard Deviation", value: String(format: "%.2f", useLbs ? rep.stdDev * AppConstants.kgToLbs : rep.stdDev))
                 if let absDev = rep.absoluteDeviation, let pctDev = rep.deviationPercentage {
-                    statRow("Difference of Median from Target", value: formatDeviation(absolute: absDev, percentage: pctDev))
+                    StatRowView(label: "Difference of Median from Target", value: DeviationFormatter.format(absolute: absDev, percentage: pctDev, useLbs: useLbs))
                 }
 
                 // Percentile grid
-                percentilesGrid(rep: rep)
+                PercentilesGridView(percentiles: [
+                    ("P1", rep.p1), ("P5", rep.p5), ("P10", rep.p10), ("P25", rep.q1),
+                    ("P75", rep.q3), ("P90", rep.p90), ("P95", rep.p95), ("P99", rep.p99)
+                ], useLbs: useLbs)
             }
             .padding(.horizontal)
         }
     }
 
-    // MARK: - Helpers
-
-    private func statRow(_ label: String, value: String, bold: Bool = false) -> some View {
-        HStack {
-            Text(label)
-                .foregroundColor(.secondary)
-            Spacer()
-            Text(value)
-                .fontWeight(bold ? .medium : .regular)
-        }
-        .font(.subheadline)
-    }
-
-    /// Compact horizontal grid showing percentile distribution
-    private func percentilesGrid(rep: RepResult) -> some View {
-        let percentiles: [(String, Double)] = [
-            ("P1", rep.p1),
-            ("P5", rep.p5),
-            ("P10", rep.p10),
-            ("P25", rep.q1),
-            ("P75", rep.q3),
-            ("P90", rep.p90),
-            ("P95", rep.p95),
-            ("P99", rep.p99)
-        ]
-
-        return VStack(spacing: 2) {
-            Text("Percentiles")
-                .foregroundColor(.secondary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-            HStack(spacing: 0) {
-                ForEach(percentiles, id: \.0) { label, _ in
-                    Text(label)
-                        .frame(maxWidth: .infinity)
-                }
-            }
-            .foregroundColor(.secondary)
-
-            HStack(spacing: 0) {
-                ForEach(percentiles, id: \.0) { _, value in
-                    Text(WeightFormatter.format(value, useLbs: useLbs, includeUnit: false))
-                        .frame(maxWidth: .infinity)
-                }
-            }
-        }
-        .font(.caption)
-    }
-
-    /// Format deviation as "+0.04 kg (+1.0%)"
-    private func formatDeviation(absolute: Double, percentage: Double) -> String {
-        let displayAbs = useLbs ? absolute * AppConstants.kgToLbs : absolute
-        let unit = useLbs ? "lbs" : "kg"
-        return String(format: "%+.2f %@ (%+.1f%%)", displayAbs, unit, percentage)
-    }
+    // MARK: - Clipboard
 
     /// Copy force data to clipboard as tab-separated values
     private func copyForceDataToClipboard(rep: RepResult, index: Int) {
@@ -285,6 +234,15 @@ struct RepForceGraphView: View {
     let useLbs: Bool
     let filterStartIndex: Int
     let filterEndIndex: Int
+
+    init(samples: [Double], duration: TimeInterval, targetWeight: Double?, useLbs: Bool, filterStartIndex: Int, filterEndIndex: Int) {
+        self.samples = samples
+        self.duration = duration
+        self.targetWeight = targetWeight
+        self.useLbs = useLbs
+        self.filterStartIndex = filterStartIndex
+        self.filterEndIndex = filterEndIndex
+    }
 
     private func displayForce(_ force: Double) -> Double {
         Double(useLbs ? force * AppConstants.kgToLbs : force)
