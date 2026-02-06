@@ -53,6 +53,7 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:screenOrientation="portrait"
             android:theme="@style/Theme.Grip_gains_companion"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
