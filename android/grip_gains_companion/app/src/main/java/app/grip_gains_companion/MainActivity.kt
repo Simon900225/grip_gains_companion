@@ -134,7 +134,7 @@ class MainActivity : ComponentActivity() {
                 }
             }
             
-            GripGainsTheme {
+            GripGainsTheme(darkTheme = true) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
