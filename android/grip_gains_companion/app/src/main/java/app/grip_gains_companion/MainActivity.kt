@@ -97,6 +97,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             val connectionState by bluetoothManager.connectionState.collectAsState()
             val isConnected = connectionState == ConnectionState.Connected
+            val isReconnecting = connectionState == ConnectionState.Reconnecting
             
             // Collect preferences
             val useLbs by preferencesRepository.useLbs.collectAsState(initial = false)
@@ -127,6 +128,7 @@ class MainActivity : ComponentActivity() {
                 if (connectionState == ConnectionState.Connected && enableHaptics) {
                     hapticManager.success()
                 }
+                // Only reset if truly disconnected (not reconnecting)
                 if (connectionState == ConnectionState.Disconnected) {
                     progressorHandler.reset()
                 }
@@ -171,7 +173,7 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                         
-                        isConnected || skippedDevice -> {
+                        isConnected || isReconnecting || skippedDevice -> {
                             MainScreen(
                                 bluetoothManager = bluetoothManager,
                                 progressorHandler = progressorHandler,

@@ -40,6 +40,7 @@ fun MainScreen(
 ) {
     val connectionState by bluetoothManager.connectionState.collectAsState()
     val isConnected = connectionState == ConnectionState.Connected
+    val isReconnecting = connectionState == ConnectionState.Reconnecting
     val selectedDeviceType by bluetoothManager.selectedDeviceType.collectAsState()
     
     // Progressor handler state
@@ -91,14 +92,15 @@ fun MainScreen(
                 )
             }
             
-            // Force graph (only when connected)
-            if (isConnected && showForceGraph) {
+            // Force graph (when connected or reconnecting)
+            if ((isConnected || isReconnecting) && showForceGraph) {
                 ForceGraph(
                     forceHistory = forceHistory,
                     useLbs = useLbs,
                     windowSeconds = forceGraphWindow,
                     targetWeight = effectiveTargetWeight,
-                    tolerance = if (enableTargetWeight) weightTolerance else null
+                    tolerance = if (enableTargetWeight) weightTolerance else null,
+                    isReconnecting = isReconnecting
                 )
             }
             

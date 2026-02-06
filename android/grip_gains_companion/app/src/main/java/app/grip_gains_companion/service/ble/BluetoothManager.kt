@@ -237,9 +237,15 @@ class BluetoothManager(private val context: Context) {
             }
             onDisconnect = {
                 Log.i(TAG, "WHC06 disconnected (no advertisements)")
-                _connectionState.value = ConnectionState.Disconnected
-                _connectedDeviceName.value = null
-                _connectedDeviceType.value = null
+                
+                // If auto-reconnect is enabled, set Reconnecting state instead of Disconnected
+                if (shouldAutoReconnect) {
+                    _connectionState.value = ConnectionState.Reconnecting
+                } else {
+                    _connectionState.value = ConnectionState.Disconnected
+                    _connectedDeviceName.value = null
+                    _connectedDeviceType.value = null
+                }
 
                 if (shouldAutoReconnect) {
                     scheduleRetry()
@@ -323,9 +329,16 @@ class BluetoothManager(private val context: Context) {
 
                 BluetoothProfile.STATE_DISCONNECTED -> {
                     Log.i(TAG, "Disconnected")
-                    _connectionState.value = ConnectionState.Disconnected
-                    _connectedDeviceName.value = null
-                    _connectedDeviceType.value = null
+                    
+                    // If auto-reconnect is enabled, set Reconnecting state instead of Disconnected
+                    if (shouldAutoReconnect) {
+                        _connectionState.value = ConnectionState.Reconnecting
+                    } else {
+                        _connectionState.value = ConnectionState.Disconnected
+                        _connectedDeviceName.value = null
+                        _connectedDeviceType.value = null
+                    }
+                    
                     notifyCharacteristic = null
                     writeCharacteristic = null
 
@@ -631,7 +644,7 @@ class BluetoothManager(private val context: Context) {
         handler.postDelayed({
             if (shouldAutoReconnect) {
                 Log.i(TAG, "Retrying connection to ${device.name}...")
-                _connectionState.value = ConnectionState.Connecting
+                _connectionState.value = ConnectionState.Reconnecting
 
                 when (device.type) {
                     DeviceType.WEIHENG_WHC06 -> connectWHC06(device)

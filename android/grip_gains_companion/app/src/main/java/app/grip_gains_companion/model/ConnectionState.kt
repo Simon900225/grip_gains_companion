@@ -9,6 +9,7 @@ sealed class ConnectionState {
     data object Scanning : ConnectionState()
     data object Connecting : ConnectionState()
     data object Connected : ConnectionState()
+    data object Reconnecting : ConnectionState()
     data class Error(val message: String) : ConnectionState()
     
     val displayText: String
@@ -18,6 +19,7 @@ sealed class ConnectionState {
             is Scanning -> "Scanning..."
             is Connecting -> "Connecting..."
             is Connected -> "Connected"
+            is Reconnecting -> "Reconnecting..."
             is Error -> "Error: $message"
         }
 }
