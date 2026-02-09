@@ -25,6 +25,7 @@ import app.grip_gains_companion.ui.screens.LogViewerScreen
 import app.grip_gains_companion.ui.screens.MainScreen
 import app.grip_gains_companion.ui.screens.SettingsScreen
 import app.grip_gains_companion.ui.theme.GripGainsTheme
+import app.grip_gains_companion.util.AppLogger
 import app.grip_gains_companion.util.HapticManager
 import app.grip_gains_companion.util.ToneGenerator
 import kotlinx.coroutines.flow.first
@@ -76,6 +77,11 @@ class MainActivity : ComponentActivity() {
         webViewBridge = WebViewBridge()
         preferencesRepository = PreferencesRepository(this)
         hapticManager = HapticManager(this)
+        
+        // Auto-detect unit preference on first launch
+        lifecycleScope.launch {
+            preferencesRepository.initializeUnitsIfNeeded()
+        }
         
         // Connect BLE samples to handler
         bluetoothManager.onForceSample = { force, timestamp ->
@@ -213,11 +219,33 @@ class MainActivity : ComponentActivity() {
         }
     }
     
+    /**
+     * Determine if we should end the session instead of failing.
+     * Returns true if grip fails before the configured threshold % of target duration.
+     */
+    private suspend fun shouldEndSessionOnEarlyFail(): Boolean {
+        val enabled = preferencesRepository.enableEndSessionOnEarlyFail.first()
+        if (!enabled) return false
+        
+        val targetDuration = webViewBridge.targetDuration.value ?: return false
+        val remainingTime = webViewBridge.remainingTime.value ?: return false
+        if (targetDuration <= 0) return false
+        
+        val elapsedTime = targetDuration - remainingTime
+        val thresholdPercent = preferencesRepository.earlyFailThresholdPercent.first()
+        val thresholdSeconds = targetDuration.toDouble() * thresholdPercent
+        return elapsedTime.toDouble() < thresholdSeconds
+    }
+    
     private fun setupEventHandlers() {
-        // Grip failed -> click fail button
+        // Grip failed -> click fail or end session button
         lifecycleScope.launch {
             progressorHandler.gripFailed.collect {
-                webViewBridge.clickFailButton()
+                if (shouldEndSessionOnEarlyFail()) {
+                    webViewBridge.clickEndSessionButton()
+                } else {
+                    webViewBridge.clickFailButton()
+                }
                 
                 val enableHaptics = preferencesRepository.enableHaptics.first()
                 if (enableHaptics) {

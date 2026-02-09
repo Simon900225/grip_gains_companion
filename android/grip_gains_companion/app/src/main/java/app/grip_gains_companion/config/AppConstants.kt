@@ -64,6 +64,12 @@ object AppConstants {
     const val DEFAULT_AUTO_SELECT_FROM_MANUAL = false
     const val DEFAULT_USE_KEYBOARD_INPUT = false
 
+    // MARK: - Early Fail Behavior
+    const val DEFAULT_ENABLE_END_SESSION_ON_EARLY_FAIL = false
+    const val DEFAULT_EARLY_FAIL_THRESHOLD_PERCENT = 0.50  // 50%
+    const val MIN_EARLY_FAIL_THRESHOLD_PERCENT = 0.10      // 10%
+    const val MAX_EARLY_FAIL_THRESHOLD_PERCENT = 0.90      // 90%
+
     // MARK: - Web
     const val GRIP_GAINS_URL = "https://gripgains.ca/timer"
 
@@ -106,13 +112,18 @@ object AppConstants {
     const val PITCH_SIX_RAW_TO_KG_FACTOR = 0.453592
 
     // MARK: - WHC06 BLE Protocol
-    /** Weight data is at payload bytes 10-11, but Android includes the 2-byte
-     *  manufacturer ID prefix, so the actual offset in the raw data is 12-13. */
-    const val WHC06_WEIGHT_BYTE_OFFSET = 12
-    /** Divide raw weight by 100 to get kg */
+    /** Weight data is at payload bytes 10-11 (after manufacturer ID stripped by Android) */
+    const val WHC06_WEIGHT_BYTE_OFFSET = 10
+    /** Divide raw weight by 100 to get value in device's current unit */
     const val WHC06_WEIGHT_DIVISOR = 100.0
-    /** Minimum advertisement data size to contain weight (need bytes 12-13) */
-    const val WHC06_MIN_DATA_SIZE = 14
+    /** Unit byte is at payload byte 14 (after manufacturer ID stripped by Android).
+     *  Low nibble values: 1 = kg, 2 = lbs, 3 = stone, 4 = jin */
+    const val WHC06_UNIT_BYTE_OFFSET = 14
+    const val WHC06_UNIT_LBS: Byte = 2
+    /** Conversion factor: lbs * 0.453592 = kg */
+    const val WHC06_LBS_TO_KG = 0.453592
+    /** Minimum advertisement data size (need byte 14 for unit) */
+    const val WHC06_MIN_DATA_SIZE = 15
 
     // MARK: - Tindeq BLE Protocol
     const val WEIGHT_DATA_PACKET_TYPE: Byte = 1

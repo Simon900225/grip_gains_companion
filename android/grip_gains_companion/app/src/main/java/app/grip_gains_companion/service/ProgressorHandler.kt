@@ -147,7 +147,6 @@ class ProgressorHandler {
      * Process a single force sample from the BLE device
      */
     suspend fun processSample(rawWeight: Double, timestamp: Long) {
-        _currentForce.value = rawWeight
         lastTimestamp = timestamp
         
         // Calculate display timestamp
@@ -171,12 +170,25 @@ class ProgressorHandler {
             displayTimestamp = firstDisplayTimestamp!!
         }
         
-        // Update force history
-        val newHistory = _forceHistory.value.toMutableList()
-        newHistory.add(ForceHistoryEntry(displayTimestamp, rawWeight))
-        _forceHistory.value = newHistory
-        
+        // Process state transition first (may establish/update baseline)
         processStateTransition(rawWeight, timestamp)
+        
+        // Compute tared weight for display based on current state's baseline
+        val baseline = when (val s = _state.value) {
+            is ProgressorState.Idle -> s.baselineValue
+            is ProgressorState.Gripping -> s.baselineValue
+            is ProgressorState.WeightCalibration -> s.baselineValue
+            else -> null
+        }
+        val displayWeight = if (baseline != null) rawWeight - baseline else rawWeight
+        
+        // Update published force with tared value
+        _currentForce.value = displayWeight
+        
+        // Update force history with tared value
+        val newHistory = _forceHistory.value.toMutableList()
+        newHistory.add(ForceHistoryEntry(displayTimestamp, displayWeight))
+        _forceHistory.value = newHistory
     }
     
     /**
@@ -256,10 +268,10 @@ class ProgressorHandler {
                 val newSamples = currentState.samples + sample
                 val taredWeight = rawWeight - currentState.baselineValue
                 
-                // Calculate live statistics
-                val weights = newSamples.map { it.weight }
-                _sessionMean.value = StatisticsUtils.mean(weights)
-                _sessionStdDev.value = StatisticsUtils.standardDeviation(weights)
+                // Calculate live statistics using tared weights
+                val taredWeights = newSamples.map { it.weight - currentState.baselineValue }
+                _sessionMean.value = StatisticsUtils.mean(taredWeights)
+                _sessionStdDev.value = StatisticsUtils.standardDeviation(taredWeights)
                 
                 if (taredWeight < effectiveFailThreshold) {
                     // Grip failed
@@ -269,14 +281,14 @@ class ProgressorHandler {
                     _isOffTarget.value = false
                     _offTargetDirection.value = null
                     _gripFailed.emit(Unit)
-                    _gripDisengaged.emit(Pair(duration, weights))
+                    _gripDisengaged.emit(Pair(duration, taredWeights))
                 } else {
                     _state.value = ProgressorState.Gripping(
                         currentState.baselineValue,
                         currentState.startTimestamp,
                         newSamples
                     )
-                    checkOffTarget(rawWeight)
+                    checkOffTarget(taredWeight)
                 }
             }
             
@@ -305,7 +317,7 @@ class ProgressorHandler {
         } else if (!canEngage && taredWeight >= weightCalibrationThreshold) {
             // Start weight calibration
             _state.value = ProgressorState.WeightCalibration(baseline, listOf(sample), true)
-            _weightMedian.value = rawWeight
+            _weightMedian.value = taredWeight
         }
     }
     
@@ -327,16 +339,16 @@ class ProgressorHandler {
             // Continue measuring
             if (isHolding) {
                 val newSamples = samples + sample
-                _weightMedian.value = StatisticsUtils.median(newSamples.map { it.weight })
+                _weightMedian.value = StatisticsUtils.median(newSamples.map { it.weight - baseline })
                 _state.value = ProgressorState.WeightCalibration(baseline, newSamples, true)
             } else {
                 // Re-engaging weight
                 _state.value = ProgressorState.WeightCalibration(baseline, listOf(sample), true)
-                _weightMedian.value = rawWeight
+                _weightMedian.value = taredWeight
             }
         } else if (taredWeight < weightCalibrationThreshold && isHolding) {
             // Put down weight - calculate final trimmed median
-            _weightMedian.value = StatisticsUtils.trimmedMedian(samples.map { it.weight })
+            _weightMedian.value = StatisticsUtils.trimmedMedian(samples.map { it.weight - baseline })
             _state.value = ProgressorState.WeightCalibration(baseline, samples, false)
         } else if (taredWeight < effectiveFailThreshold) {
             // Completely released - back to idle

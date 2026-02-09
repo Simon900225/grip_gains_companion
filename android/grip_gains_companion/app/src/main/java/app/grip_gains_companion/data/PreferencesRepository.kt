@@ -11,7 +11,9 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import app.grip_gains_companion.config.AppConstants
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import java.util.Locale
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
@@ -22,6 +24,7 @@ class PreferencesRepository(private val context: Context) {
     
     // Keys
     private object Keys {
+        val HAS_INITIALIZED_UNITS = booleanPreferencesKey("has_initialized_units")
         val USE_LBS = booleanPreferencesKey("use_lbs")
         val ENABLE_HAPTICS = booleanPreferencesKey("enable_haptics")
         val ENABLE_TARGET_SOUND = booleanPreferencesKey("enable_target_sound")
@@ -60,6 +63,9 @@ class PreferencesRepository(private val context: Context) {
         
         val SHOW_GRIP_STATS = booleanPreferencesKey("show_grip_stats")
         val SHOW_SET_REVIEW = booleanPreferencesKey("show_set_review")
+        
+        val ENABLE_END_SESSION_ON_EARLY_FAIL = booleanPreferencesKey("enable_end_session_on_early_fail")
+        val EARLY_FAIL_THRESHOLD_PERCENT = doublePreferencesKey("early_fail_threshold_percent")
         
         val LAST_CONNECTED_DEVICE_ADDRESS = stringPreferencesKey("last_connected_device_address")
     }
@@ -219,6 +225,17 @@ class PreferencesRepository(private val context: Context) {
     }
     suspend fun setShowSetReview(value: Boolean) = context.dataStore.edit { it[Keys.SHOW_SET_REVIEW] = value }
     
+    // Early fail preferences
+    val enableEndSessionOnEarlyFail: Flow<Boolean> = context.dataStore.data.map {
+        it[Keys.ENABLE_END_SESSION_ON_EARLY_FAIL] ?: AppConstants.DEFAULT_ENABLE_END_SESSION_ON_EARLY_FAIL
+    }
+    suspend fun setEnableEndSessionOnEarlyFail(value: Boolean) = context.dataStore.edit { it[Keys.ENABLE_END_SESSION_ON_EARLY_FAIL] = value }
+    
+    val earlyFailThresholdPercent: Flow<Double> = context.dataStore.data.map {
+        it[Keys.EARLY_FAIL_THRESHOLD_PERCENT] ?: AppConstants.DEFAULT_EARLY_FAIL_THRESHOLD_PERCENT
+    }
+    suspend fun setEarlyFailThresholdPercent(value: Double) = context.dataStore.edit { it[Keys.EARLY_FAIL_THRESHOLD_PERCENT] = value }
+    
     // Device preferences
     val lastConnectedDeviceAddress: Flow<String?> = context.dataStore.data.map { 
         it[Keys.LAST_CONNECTED_DEVICE_ADDRESS] 
@@ -228,6 +245,22 @@ class PreferencesRepository(private val context: Context) {
             it[Keys.LAST_CONNECTED_DEVICE_ADDRESS] = value
         } else {
             it.remove(Keys.LAST_CONNECTED_DEVICE_ADDRESS)
+        }
+    }
+    
+    /**
+     * Auto-detect unit preference based on locale on first launch.
+     * Sets useLbs = true for US, Myanmar, and Liberia (non-metric countries).
+     */
+    suspend fun initializeUnitsIfNeeded() {
+        val hasInitialized = context.dataStore.data.first()[Keys.HAS_INITIALIZED_UNITS] ?: false
+        if (!hasInitialized) {
+            val country = Locale.getDefault().country.uppercase()
+            val usesImperial = country in listOf("US", "MM", "LR")
+            context.dataStore.edit { prefs ->
+                prefs[Keys.USE_LBS] = usesImperial
+                prefs[Keys.HAS_INITIALIZED_UNITS] = true
+            }
         }
     }
     

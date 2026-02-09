@@ -8,14 +8,15 @@ import app.grip_gains_companion.config.AppConstants
 object JavaScriptBridge {
     
     /**
-     * Close the weight picker overlay if it's open on page load
+     * Close the weight picker if it's open on page load
+     * This handles the case where Vue restores the picker state after a page refresh
      */
     val closePickerOnLoadScript = """
         (function() {
             function closePickerIfOpen() {
-                const overlay = document.querySelector('.weight-picker-overlay');
-                if (overlay) {
-                    const closeBtn = overlay.querySelector('.close-button');
+                const picker = document.querySelector('.weight-picker-modal');
+                if (picker) {
+                    const closeBtn = picker.querySelector('.close-button');
                     if (closeBtn) closeBtn.click();
                 }
             }
@@ -101,6 +102,18 @@ object JavaScriptBridge {
     val clickFailButton = """
         (function() {
             const button = document.querySelector('button.btn-fail-prominent');
+            if (button && !button.disabled) {
+                button.click();
+            }
+        })();
+    """.trimIndent()
+    
+    /**
+     * Click the "End Session" button to abort the session
+     */
+    val clickEndSessionButton = """
+        (function() {
+            const button = document.querySelector('button.btn-danger.btn-lg.session-actions-end');
             if (button && !button.disabled) {
                 button.click();
             }
@@ -273,13 +286,16 @@ object JavaScriptBridge {
             const button = document.querySelector('.weight-picker-button');
             if (!button) return;
 
+            // Inject CSS to hide the picker while we interact with it
             const style = document.createElement('style');
             style.id = 'auto-select-hide';
-            style.textContent = '.weight-picker-overlay { display: none !important; }';
+            style.textContent = '.weight-picker-modal { visibility: hidden !important; opacity: 0 !important; position: fixed !important; }';
             document.head.appendChild(style);
 
+            // Click to open the picker
             button.click();
 
+            // Wait for picker to render, then find options
             setTimeout(() => {
                 const options = document.querySelectorAll('.weight-option');
                 if (!options.length) {
@@ -304,10 +320,13 @@ object JavaScriptBridge {
                     }
                 });
 
-                style.textContent = '.weight-picker-overlay { opacity: 0 !important; pointer-events: auto !important; }';
+                // Temporarily switch to opacity-based hiding to allow clicking
+                style.textContent = '.weight-picker-modal { opacity: 0 !important; pointer-events: auto !important; }';
 
+                // Click the closest option (Vue handles the rest)
                 if (closest) closest.click();
 
+                // Remove the hiding style after picker closes
                 setTimeout(() => style.remove(), 100);
             }, 50);
         })();
@@ -324,13 +343,16 @@ object JavaScriptBridge {
                 return;
             }
 
+            // Inject CSS to hide the modal while we interact
             const style = document.createElement('style');
             style.id = 'scrape-options-hide';
-            style.textContent = '.weight-picker-overlay, .modal, .modal-backdrop, [class*="overlay"], [class*="modal"], [class*="picker"] > div:not(button) { display: none !important; }';
+            style.textContent = '.weight-picker-modal { visibility: hidden !important; opacity: 0 !important; position: fixed !important; }';
             document.head.appendChild(style);
 
+            // Click to open the picker
             button.click();
 
+            // Wait for picker to render, then scrape options
             setTimeout(() => {
                 const options = document.querySelectorAll('.weight-option');
                 const weights = [];
@@ -345,11 +367,13 @@ object JavaScriptBridge {
                     }
                 });
 
-                style.textContent = '.weight-picker-overlay, .modal, .modal-backdrop, [class*="overlay"], [class*="modal"], [class*="picker"] > div:not(button) { opacity: 0 !important; pointer-events: auto !important; }';
+                // Temporarily switch to opacity-based hiding to allow clicking
+                style.textContent = '.weight-picker-modal { opacity: 0 !important; pointer-events: auto !important; }';
 
-                const overlay = document.querySelector('.weight-picker-overlay');
-                if (overlay) {
-                    const closeBtn = overlay.querySelector('.close-button');
+                // Close picker by clicking the close button
+                const picker = document.querySelector('.weight-picker-modal');
+                if (picker) {
+                    const closeBtn = picker.querySelector('.close-button');
                     if (closeBtn) {
                         closeBtn.click();
                     } else {
@@ -357,6 +381,7 @@ object JavaScriptBridge {
                     }
                 }
 
+                // Remove the hiding style after picker closes
                 setTimeout(() => style.remove(), 150);
 
                 Android.onWeightOptionsChanged(JSON.stringify(weights), isLbs);

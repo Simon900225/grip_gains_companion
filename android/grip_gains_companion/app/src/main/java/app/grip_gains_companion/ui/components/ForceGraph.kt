@@ -72,9 +72,9 @@ fun ForceGraph(
             upper = max(upper, displayTarget + tolValue)
         }
         
-        // Add padding
+        // Add padding (at least 0.5 units to give breathing room)
         val range = upper - lower
-        val padding = max(range * 0.15, 2.0)
+        val padding = max(range * 0.05, 0.5)
         Pair(max(0.0, lower - padding), upper + padding)
     }
     

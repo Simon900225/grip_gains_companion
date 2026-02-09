@@ -78,30 +78,35 @@ class WHC06Service {
 
     /**
      * Parse manufacturer data from WHC06 advertisement
-     * Format: bytes 10-11 (relative to manufacturer data start) contain weight as big-endian 16-bit signed integer, divided by 100 for kg
+     * Format: bytes 10-11 contain weight as big-endian 16-bit signed integer, byte 14 contains unit
      * Note: Android's getManufacturerSpecificData already strips the manufacturer ID prefix,
-     * so we use offset 10-11 directly (not 12-13 like in iOS where prefix is included)
+     * so offsets are 2 less than the raw advertisement offsets.
      */
     private fun parseManufacturerData(data: ByteArray): Double? {
-        // The offset in the spec is 10-11 within the manufacturer-specific payload
-        // Android's getManufacturerSpecificData returns data AFTER the 2-byte manufacturer ID
-        val weightOffset = 10  // bytes 10-11 in the payload (after manufacturer ID is stripped)
-        val minSize = weightOffset + 2  // Need bytes at offset 10-11
-
-        if (data.size < minSize) {
-            Log.w(TAG, "Manufacturer data too small: ${data.size} bytes, need $minSize")
+        // Verify minimum data size (need byte 14 for unit)
+        if (data.size < AppConstants.WHC06_MIN_DATA_SIZE) {
+            Log.w(TAG, "Manufacturer data too small: ${data.size} bytes, need ${AppConstants.WHC06_MIN_DATA_SIZE}")
             return null
         }
 
         // Extract weight from bytes 10-11 (big-endian, signed Int16 for negative values after tare)
+        val weightOffset = AppConstants.WHC06_WEIGHT_BYTE_OFFSET
         val buffer = ByteBuffer.wrap(data, weightOffset, 2)
         buffer.order(ByteOrder.BIG_ENDIAN)
         val rawWeight = buffer.short.toInt()
 
-        // Convert to kg (divide by 100)
-        val weightKg = rawWeight / AppConstants.WHC06_WEIGHT_DIVISOR
+        // Get raw value in device's current unit
+        val rawValue = rawWeight / AppConstants.WHC06_WEIGHT_DIVISOR
 
-        return weightKg
+        // Read unit from byte 14 (low nibble)
+        val unitByte = (data[AppConstants.WHC06_UNIT_BYTE_OFFSET].toInt() and 0x0f).toByte()
+
+        // Convert to kg if device is set to lbs
+        return if (unitByte == AppConstants.WHC06_UNIT_LBS) {
+            rawValue * AppConstants.WHC06_LBS_TO_KG
+        } else {
+            rawValue
+        }
     }
 
     /**

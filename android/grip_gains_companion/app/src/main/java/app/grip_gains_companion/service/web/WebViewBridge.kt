@@ -114,6 +114,10 @@ class WebViewBridge {
         evaluateJavaScript(JavaScriptBridge.clickFailButton)
     }
     
+    fun clickEndSessionButton() {
+        evaluateJavaScript(JavaScriptBridge.clickEndSessionButton)
+    }
+    
     fun refreshButtonState() {
         evaluateJavaScript(JavaScriptBridge.checkFailButtonState)
     }

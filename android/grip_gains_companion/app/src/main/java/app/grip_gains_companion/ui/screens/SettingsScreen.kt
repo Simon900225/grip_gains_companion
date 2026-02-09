@@ -13,12 +13,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.grip_gains_companion.config.AppConstants
 import app.grip_gains_companion.data.PreferencesRepository
 import app.grip_gains_companion.model.ConnectionState
 import app.grip_gains_companion.service.ble.BluetoothManager
 import app.grip_gains_companion.service.web.WebViewBridge
 import app.grip_gains_companion.util.WeightFormatter
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -56,6 +58,8 @@ fun SettingsScreen(
     val backgroundTimeSync by preferencesRepository.backgroundTimeSync.collectAsStateWithLifecycle(initialValue = true)
     val enableLiveActivity by preferencesRepository.enableLiveActivity.collectAsStateWithLifecycle(initialValue = true)
     val autoSelectWeight by preferencesRepository.autoSelectWeight.collectAsStateWithLifecycle(initialValue = true)
+    val enableEndSessionOnEarlyFail by preferencesRepository.enableEndSessionOnEarlyFail.collectAsStateWithLifecycle(initialValue = false)
+    val earlyFailThresholdPercent by preferencesRepository.earlyFailThresholdPercent.collectAsStateWithLifecycle(initialValue = 0.50)
     
     val scrapedTargetWeight by webViewBridge.targetWeight.collectAsStateWithLifecycle()
     
@@ -205,18 +209,20 @@ fun SettingsScreen(
                 
                 if (showForceGraph) {
                     SegmentedButtonRow(
-                        options = listOf("5s", "10s", "30s", "All"),
+                        options = listOf("1s", "5s", "10s", "30s", "All"),
                         selectedIndex = when (forceGraphWindow) {
-                            5 -> 0
-                            10 -> 1
-                            30 -> 2
-                            else -> 3
+                            1 -> 0
+                            5 -> 1
+                            10 -> 2
+                            30 -> 3
+                            else -> 4
                         },
                         onSelectionChanged = {
                             val value = when (it) {
-                                0 -> 5
-                                1 -> 10
-                                2 -> 30
+                                0 -> 1
+                                1 -> 5
+                                2 -> 10
+                                3 -> 30
                                 else -> 0
                             }
                             scope.launch { preferencesRepository.setForceGraphWindow(value) }
@@ -333,6 +339,35 @@ fun SettingsScreen(
                     checked = autoSelectWeight,
                     onCheckedChange = { scope.launch { preferencesRepository.setAutoSelectWeight(it) } }
                 )
+                
+                SwitchPreference(
+                    title = "Balrog Avoidance",
+                    checked = enableEndSessionOnEarlyFail,
+                    onCheckedChange = { scope.launch { preferencesRepository.setEnableEndSessionOnEarlyFail(it) } }
+                )
+                
+                if (enableEndSessionOnEarlyFail) {
+                    StepperPreference(
+                        title = "Threshold",
+                        value = earlyFailThresholdPercent,
+                        valueFormat = { "${(it * 100).roundToInt()}%" },
+                        onIncrement = {
+                            val newValue = (earlyFailThresholdPercent + 0.05).coerceAtMost(AppConstants.MAX_EARLY_FAIL_THRESHOLD_PERCENT)
+                            scope.launch { preferencesRepository.setEarlyFailThresholdPercent(newValue) }
+                        },
+                        onDecrement = {
+                            val newValue = (earlyFailThresholdPercent - 0.05).coerceAtLeast(AppConstants.MIN_EARLY_FAIL_THRESHOLD_PERCENT)
+                            scope.launch { preferencesRepository.setEarlyFailThresholdPercent(newValue) }
+                        }
+                    )
+                    
+                    Text(
+                        text = "Abort session if grip fails before this % of target duration.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 16.dp)
+                    )
+                }
             }
             
             // Units section
@@ -488,6 +523,34 @@ private fun SegmentedButtonRow(
             }
         }
     }
+}
+
+@Composable
+private fun StepperPreference(
+    title: String,
+    value: Double,
+    valueFormat: (Double) -> String,
+    onIncrement: () -> Unit,
+    onDecrement: () -> Unit
+) {
+    ListItem(
+        headlineContent = { Text(title) },
+        trailingContent = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = valueFormat(value),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(end = 8.dp)
+                )
+                IconButton(onClick = onDecrement, modifier = Modifier.size(32.dp)) {
+                    Icon(Icons.Default.Remove, contentDescription = "Decrease")
+                }
+                IconButton(onClick = onIncrement, modifier = Modifier.size(32.dp)) {
+                    Icon(Icons.Default.Add, contentDescription = "Increase")
+                }
+            }
+        }
+    )
 }
 
 private fun Modifier.clickableRow(onClick: () -> Unit): Modifier {
