@@ -156,8 +156,15 @@ class ProgressorHandler {
         val firstDisplay = firstDisplayTimestamp
         
         if (firstDevice != null && firstDisplay != null) {
-            val offsetMicros = timestamp - firstDevice
-            displayTimestamp = Date(firstDisplay.time + offsetMicros / 1000)
+            if (timestamp < firstDevice) {
+                // Device timestamp reset (e.g., after BLE reconnection) - re-anchor
+                firstDeviceTimestamp = timestamp
+                firstDisplayTimestamp = Date()
+                displayTimestamp = firstDisplayTimestamp!!
+            } else {
+                val offsetMicros = timestamp - firstDevice
+                displayTimestamp = Date(firstDisplay.time + offsetMicros / 1000)
+            }
         } else {
             firstDeviceTimestamp = timestamp
             firstDisplayTimestamp = Date()
@@ -208,7 +215,10 @@ class ProgressorHandler {
         
         when (val currentState = _state.value) {
             is ProgressorState.WaitingForSamples -> {
-                _forceHistory.value = emptyList()
+                // Don't clear force history if we already have some (preserves graph during reconnection)
+                if (_forceHistory.value.isEmpty()) {
+                    _forceHistory.value = emptyList()
+                }
                 if (enableCalibration) {
                     _state.value = ProgressorState.Calibrating(
                         startTimeMs = System.currentTimeMillis(),
@@ -256,7 +266,6 @@ class ProgressorHandler {
                     stopOffTargetTimer()
                     val duration = (timestamp - currentState.startTimestamp) / 1_000_000.0
                     _state.value = ProgressorState.Idle(currentState.baselineValue)
-                    canEngage = false
                     _isOffTarget.value = false
                     _offTargetDirection.value = null
                     _gripFailed.emit(Unit)
