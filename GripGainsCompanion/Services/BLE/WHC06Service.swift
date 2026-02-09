@@ -66,10 +66,10 @@ class WHC06Service {
     // MARK: - Data Parsing
 
     /// Parse manufacturer data from WHC06 advertisement
-    /// Format: bytes 12-13 contain weight as big-endian 16-bit integer, divided by 100 for kg
+    /// Format: bytes 12-13 contain weight as big-endian 16-bit integer, byte 16 contains unit
     /// (bytes 0-1 are the manufacturer ID prefix in iOS CoreBluetooth)
     private func parseManufacturerData(_ data: Data) -> Double? {
-        // Verify minimum data size (need bytes 12-13 for weight)
+        // Verify minimum data size (need byte 16 for unit)
         guard data.count >= WHC06Protocol.minDataSize else {
             return nil
         }
@@ -81,10 +81,17 @@ class WHC06Service {
             Int16(bigEndian: buffer.load(as: Int16.self))
         }
 
-        // Convert to kg (divide by 100)
-        let weightKg = Double(rawWeight) / WHC06Protocol.weightDivisor
+        // Get raw value in device's current unit
+        let rawValue = Double(rawWeight) / WHC06Protocol.weightDivisor
 
-        return weightKg
+        // Read unit from byte 16 (low nibble)
+        let unitByte = data[WHC06Protocol.unitByteOffset] & 0x0f
+
+        // Convert to kg if device is set to lbs
+        if unitByte == WHC06Protocol.unitLbs {
+            return rawValue * WHC06Protocol.lbsToKg
+        }
+        return rawValue
     }
 
     // MARK: - Timestamp Generation

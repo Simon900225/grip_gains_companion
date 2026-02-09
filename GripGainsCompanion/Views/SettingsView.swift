@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 
 // MARK: - Bounds Picker Row
 
@@ -64,6 +65,8 @@ enum ForceBarTheme: String, CaseIterable {
     }
 }
 
+// MARK: - Settings View
+
 struct SettingsView: View {
     let deviceName: String?
     let isDeviceConnected: Bool
@@ -75,9 +78,6 @@ struct SettingsView: View {
 
     /// Target weight scraped from website (read-only display)
     let scrapedTargetWeight: Double?
-
-    /// Progressor handler for sample filter test (optional, only needed when connected)
-    var progressorHandler: ProgressorHandler?
 
     /// Device short name for dynamic text (e.g., "Tindeq", "PitchSix")
     var deviceShortName: String = "device"
@@ -107,6 +107,9 @@ struct SettingsView: View {
     @AppStorage("enableLiveActivity") private var enableLiveActivity = AppConstants.defaultEnableLiveActivity
     @AppStorage("autoSelectWeight") private var autoSelectWeight = AppConstants.defaultAutoSelectWeight
     @AppStorage("autoSelectFromManual") private var autoSelectFromManual = AppConstants.defaultAutoSelectFromManual
+    @AppStorage("enableEndSessionOnEarlyFail") private var enableEndSessionOnEarlyFail = AppConstants.defaultEnableEndSessionOnEarlyFail
+    @AppStorage("earlyFailThresholdPercent") private var earlyFailThresholdPercent: Double = AppConstants.defaultEarlyFailThresholdPercent
+    @AppStorage("enableICloudSync") private var enableICloudSync = AppConstants.defaultEnableICloudSync
     @AppStorage("engageThreshold") private var engageThreshold: Double = AppConstants.defaultEngageThreshold
     @AppStorage("failThreshold") private var failThreshold: Double = AppConstants.defaultFailThreshold
     @AppStorage("enablePercentageThresholds") private var enablePercentageThresholds = AppConstants.defaultEnablePercentageThresholds
@@ -133,6 +136,7 @@ struct SettingsView: View {
     @State private var manualTargetText: String = "20.00"
     @State private var showThresholdOptions = false
     @State private var showResetConfirmation = false
+    @State private var showHistorySheet = false
     @FocusState private var isTextFieldFocused: Bool
 
     // Decimal options (0.05 increments)
@@ -149,6 +153,17 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             List {
+                // History section
+                Section("History") {
+                    Button("View Session History") {
+                        showHistorySheet = true
+                    }
+                    Toggle("iCloud Sync", isOn: $enableICloudSync)
+                    Text("Syncs session data across devices and saves CSV files to iCloud Drive. Restart app after changing.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+
                 // Target Weight section (only shown when device is connected)
                 if isDeviceConnected {
                     Section("Target Weight") {
@@ -464,6 +479,7 @@ struct SettingsView: View {
                     Toggle("Force Graph", isOn: $showForceGraph)
                     if showForceGraph {
                         Picker("Graph Window", selection: $forceGraphWindow) {
+                            Text("1s").tag(1)
                             Text("5s").tag(5)
                             Text("10s").tag(10)
                             Text("30s").tag(30)
@@ -550,6 +566,23 @@ struct SettingsView: View {
                             .foregroundColor(.secondary)
                     }
 
+                    Toggle("Balrog Avoidance", isOn: $enableEndSessionOnEarlyFail)
+                    if enableEndSessionOnEarlyFail {
+                        HStack {
+                            Text("Threshold")
+                            Spacer()
+                            Text("\(Int(round(earlyFailThresholdPercent * 100)))%")
+                                .foregroundColor(.secondary)
+                            Stepper("", value: $earlyFailThresholdPercent,
+                                    in: AppConstants.minEarlyFailThresholdPercent...AppConstants.maxEarlyFailThresholdPercent,
+                                    step: 0.05)
+                                .labelsHidden()
+                        }
+                        Text("Abort session if grip fails before this % of target duration.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+
                 }
 
                 // Units section
@@ -584,27 +617,30 @@ struct SettingsView: View {
                 } footer: {
                     Text("Restores all settings to their recommended values.")
                 }
-            }
-            .navigationTitle("Settings")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") {
-                        dismiss()
-                    }
+        }
+        .navigationTitle("Settings")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("Done") {
+                    dismiss()
                 }
             }
-            .onAppear {
-                initializeWheelPickers()
-                let displayValue = useLbs ? manualTargetWeight * Double(AppConstants.kgToLbs) : manualTargetWeight
-                manualTargetText = String(format: "%.2f", displayValue)
-            }
-            .onChange(of: useLbs) { _, _ in
-                // Re-initialize inputs when unit changes to show correct value in new unit
-                initializeWheelPickers()
-                let displayValue = useLbs ? manualTargetWeight * Double(AppConstants.kgToLbs) : manualTargetWeight
-                manualTargetText = String(format: "%.2f", displayValue)
-            }
+        }
+        .onAppear {
+            initializeWheelPickers()
+            let displayValue = useLbs ? manualTargetWeight * Double(AppConstants.kgToLbs) : manualTargetWeight
+            manualTargetText = String(format: "%.2f", displayValue)
+        }
+        .onChange(of: useLbs) { _, _ in
+            // Re-initialize inputs when unit changes to show correct value in new unit
+            initializeWheelPickers()
+            let displayValue = useLbs ? manualTargetWeight * Double(AppConstants.kgToLbs) : manualTargetWeight
+            manualTargetText = String(format: "%.2f", displayValue)
+        }
+        } // NavigationStack
+        .sheet(isPresented: $showHistorySheet) {
+            SessionHistorySheet()
         }
     }
 
@@ -648,6 +684,11 @@ struct SettingsView: View {
         autoSelectWeight = AppConstants.defaultAutoSelectWeight
         autoSelectFromManual = AppConstants.defaultAutoSelectFromManual
         useKeyboardInput = AppConstants.defaultUseKeyboardInput
+        enableEndSessionOnEarlyFail = AppConstants.defaultEnableEndSessionOnEarlyFail
+        earlyFailThresholdPercent = AppConstants.defaultEarlyFailThresholdPercent
+
+        // Data
+        enableICloudSync = AppConstants.defaultEnableICloudSync
 
         // Fixed thresholds
         engageThreshold = AppConstants.defaultEngageThreshold

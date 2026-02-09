@@ -5,10 +5,13 @@ An unofficial iOS companion app for [gripgains.ca](https://gripgains.ca/) that a
 ## Features
 
 - **Keep screen awake** - Screen stays on during your training session
-- **Auto-click fail button** - When connected to a Tindeq Progressor, automatically clicks the fail button when your grip fails
-- **Measure actual weight** - Verify your load with the Tindeq before inputting on the website (ensures consistency when switching setups or using cable machines where indicated weight may differ from actual load)
+- **Auto-click fail button** - Automatically clicks the fail button when your grip fails
+- **Measure actual weight** - Verify your load before inputting on the website (ensures consistency when switching setups or using cable machines where indicated weight may differ from actual load)
 - **Target weight feedback** - Set a target weight and get visual, audio, and haptic feedback when you're off target
 - **Real-time force graph** - Visualize your grip force over time with a live chart
+- **End-of-set summary** - View detailed rep statistics after each set
+- **Session history** - Track your training sessions with iCloud sync
+- **Share results** - Export set summaries or rep graphs as images
 
 ### Experimental
 
@@ -19,7 +22,10 @@ An unofficial iOS companion app for [gripgains.ca](https://gripgains.ca/) that a
 ## Requirements
 
 - iOS 17.0+
-- Tindeq Progressor (optional - the app works without it if you just want to keep the screen awake)
+- Supported devices (optional - the app works without one if you just want to keep the screen awake):
+  - Tindeq Progressor
+  - PitchSix
+  - WHC06
 
 ## Installation
 

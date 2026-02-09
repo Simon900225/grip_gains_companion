@@ -1,8 +1,9 @@
 import WebKit
+import Combine
 
 /// Coordinator for WKWebView that handles JavaScript message callbacks
 /// This bridges JavaScript calls back to Swift
-class WebViewCoordinator: NSObject, WKScriptMessageHandler, WKNavigationDelegate {
+class WebViewCoordinator: NSObject, ObservableObject, WKScriptMessageHandler, WKNavigationDelegate {
     private weak var webView: WKWebView?
 
     /// Callback when button state changes
@@ -156,6 +157,30 @@ class WebViewCoordinator: NSObject, WKScriptMessageHandler, WKNavigationDelegate
             _ = try await webView?.evaluateJavaScript(JavaScriptBridge.clickFailButton)
         } catch {
             Log.app.error("Error clicking fail button: \(error.localizedDescription)")
+        }
+    }
+
+    /// Click the "End Session" button via JavaScript injection
+    func clickEndSessionButton() {
+        Task { @MainActor in
+            await clickEndSessionButtonAsync()
+        }
+    }
+
+    /// Click the "End Session" button (async version)
+    @MainActor
+    func clickEndSessionButtonAsync() async {
+        do {
+            _ = try await webView?.evaluateJavaScript(JavaScriptBridge.clickEndSessionButton)
+        } catch {
+            Log.app.error("Error clicking end session button: \(error.localizedDescription)")
+        }
+    }
+
+    /// Click the "Start" button via JavaScript injection
+    func clickStartButton() {
+        Task { @MainActor in
+            try? await webView?.evaluateJavaScript(JavaScriptBridge.clickStartButton)
         }
     }
 

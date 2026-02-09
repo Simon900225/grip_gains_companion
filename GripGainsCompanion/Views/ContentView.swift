@@ -142,6 +142,7 @@ struct ToleranceBoundsSyncModifier: ViewModifier {
 /// Main view that orchestrates all components
 struct ContentView: View {
     @Environment(\.scenePhase) private var scenePhase
+    @EnvironmentObject private var persistenceService: SessionPersistenceService
     @StateObject private var bluetoothManager = BluetoothManager()
     @StateObject private var progressorHandler = ProgressorHandler()
     @StateObject private var activityManager = ActivityManager()
@@ -187,6 +188,8 @@ struct ContentView: View {
     @AppStorage("enableLiveActivity") private var enableLiveActivity = AppConstants.defaultEnableLiveActivity
     @AppStorage("autoSelectWeight") private var autoSelectWeight = AppConstants.defaultAutoSelectWeight
     @AppStorage("autoSelectFromManual") private var autoSelectFromManual = AppConstants.defaultAutoSelectFromManual
+    @AppStorage("enableEndSessionOnEarlyFail") private var enableEndSessionOnEarlyFail = AppConstants.defaultEnableEndSessionOnEarlyFail
+    @AppStorage("earlyFailThresholdPercent") private var earlyFailThresholdPercent: Double = AppConstants.defaultEarlyFailThresholdPercent
     @State private var dragOffset: CGSize = .zero
     @State private var displayedMean: Double?
     @State private var displayedStdDev: Double?
@@ -212,7 +215,7 @@ struct ContentView: View {
     @StateObject private var repTracker = RepTracker()
     @State private var showSetReview: Bool = false
 
-    private let webCoordinator = WebViewCoordinator()
+    @StateObject private var webCoordinator = WebViewCoordinator()
 
     private var preferredScheme: ColorScheme? {
         switch ForceBarTheme(rawValue: forceBarTheme) ?? .system {
@@ -359,7 +362,6 @@ struct ContentView: View {
                 webCoordinator.refreshButtonState()
             },
             scrapedTargetWeight: scrapedTargetWeight,
-            progressorHandler: progressorHandler,
             deviceShortName: bluetoothManager.selectedDeviceType.shortName
         )
     }
@@ -387,7 +389,9 @@ struct ContentView: View {
         mainViewWithHandlers
             .overlay { settingsButtonOverlay }
             .overlay { floatingWeightControlOverlay }
-            .sheet(isPresented: $showSettings) { settingsSheet }
+            .sheet(isPresented: $showSettings) {
+                settingsSheet
+            }
             .sheet(isPresented: $showSetReview) { setReviewSheet }
     }
 
@@ -602,7 +606,8 @@ struct ContentView: View {
                     onIncrement: { incrementSuggestedWeight() },
                     onDecrement: { decrementSuggestedWeight() },
                     onSet: { setSuggestedWeightInWebUI() },
-                    onReset: { suggestedWeightKg = scrapedTargetWeight }
+                    onReset: { suggestedWeightKg = scrapedTargetWeight },
+                    onStart: { webCoordinator.clickStartButton() }
                 )
                 .position(
                     x: currentX + controlWidth / 2 + weightControlDragOffset.width,
@@ -653,6 +658,18 @@ struct ContentView: View {
     /// Update the handler's target weight based on current settings
     private func updateTargetWeight() {
         progressorHandler.targetWeight = effectiveTargetWeight
+    }
+
+    /// Determine if we should end the session instead of failing
+    private func shouldEndSessionOnEarlyFail() -> Bool {
+        guard enableEndSessionOnEarlyFail,
+              let targetDuration = scrapedTargetDuration,
+              let remainingTime = scrapedRemainingTime,
+              targetDuration > 0 else { return false }
+
+        let elapsedTime = targetDuration - remainingTime
+        let thresholdSeconds = Double(targetDuration) * earlyFailThresholdPercent
+        return Double(elapsedTime) < thresholdSeconds
     }
 
     // MARK: - Weight Picker Functions
@@ -728,10 +745,13 @@ struct ContentView: View {
         }
 
         // WebView session info (gripper type, side)
-        webCoordinator.onSessionInfoChanged = { [repTracker] gripper, side in
+        webCoordinator.onSessionInfoChanged = { [repTracker, persistenceService] gripper, side in
             scrapedGripper = gripper
             scrapedSide = side
             repTracker.updateSessionContext(gripper: gripper, side: side)
+            Task { @MainActor in
+                persistenceService.updateSessionContext(gripper: gripper, side: side)
+            }
         }
 
         // WebView advanced-settings-header visibility
@@ -749,12 +769,17 @@ struct ContentView: View {
             progressorHandler.processSample(force, timestamp: timestamp)
         }
 
-        // Handler grip failed -> Click fail button and end Live Activity
+        // Handler grip failed -> Click fail or end session button
         let activityMgr = activityManager
         progressorHandler.gripFailed
             .receive(on: DispatchQueue.main)
             .sink { [webCoordinator, activityMgr] in
-                webCoordinator.clickFailButton()
+                if self.shouldEndSessionOnEarlyFail() {
+                    webCoordinator.clickEndSessionButton()
+                    Log.app.info("Early fail detected - ending session")
+                } else {
+                    webCoordinator.clickFailButton()
+                }
                 activityMgr.endActivity()
                 if UserDefaults.standard.object(forKey: "enableHaptics") as? Bool ?? true {
                     HapticManager.warning()
@@ -782,6 +807,16 @@ struct ContentView: View {
                     samples: samples,
                     targetWeight: progressorHandler.targetWeight
                 )
+            }
+            .store(in: &cancellables)
+
+        // Rep completed -> Save to database
+        repTracker.repCompleted
+            .receive(on: DispatchQueue.main)
+            .sink { [persistenceService] rep in
+                Task { @MainActor in
+                    persistenceService.saveRep(from: rep)
+                }
             }
             .store(in: &cancellables)
 

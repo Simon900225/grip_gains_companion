@@ -64,6 +64,15 @@ struct AppConstants {
     static let defaultAutoSelectFromManual: Bool = false
     static let defaultUseKeyboardInput: Bool = false
 
+    // MARK: - Early Fail Behavior
+    static let defaultEnableEndSessionOnEarlyFail: Bool = false
+    static let defaultEarlyFailThresholdPercent: Double = 0.50  // 50%
+    static let minEarlyFailThresholdPercent: Double = 0.10      // 10%
+    static let maxEarlyFailThresholdPercent: Double = 0.90      // 90%
+
+    // MARK: - iCloud Sync
+    static let defaultEnableICloudSync: Bool = false
+
     // MARK: - Web
     static let gripGainsURL = URL(string: "https://gripgains.ca/timer")!
 
@@ -134,10 +143,16 @@ enum WHC06Protocol {
     /// Weight data is at payload bytes 10-11, but iOS CoreBluetooth includes the 2-byte
     /// manufacturer ID prefix, so the actual offset in the raw data is 12-13.
     static let weightByteOffset: Int = 12
-    /// Divide raw weight by 100 to get kg
+    /// Divide raw weight by 100 to get value in device's current unit
     static let weightDivisor: Double = 100.0
-    /// Minimum advertisement data size to contain weight (need bytes 12-13)
-    static let minDataSize: Int = 14
+    /// Unit byte is at payload byte 14, iOS offset 16 (low nibble)
+    /// Unit values: 1 = kg, 2 = lbs, 3 = stone, 4 = 斤 (jin)
+    static let unitByteOffset: Int = 16
+    static let unitLbs: UInt8 = 2
+    /// Conversion factor: lbs × 0.453592 = kg
+    static let lbsToKg: Double = 0.453592
+    /// Minimum advertisement data size (need byte 16 for unit)
+    static let minDataSize: Int = 17
 }
 
 // MARK: - BLE Errors
